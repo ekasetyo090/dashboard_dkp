@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
+import streamlit as st
 
 def plot_upi_per_kecamatan(df, figsize=(12, 8)):
     """
@@ -175,52 +176,15 @@ def plot_upi_jenis_proses_jenis_ikan_catplot(df, figsize=(12, 8)):
         ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
         ax.grid(axis="y", linestyle="--", alpha=0.5)
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        
+    if g._legend is not None:
+        g._legend.set_title("Jenis Ikan")
 
-    g._legend.set_title("Jenis Ikan")
+    # g._legend.set_title("Jenis Ikan")
 
     return g.fig
 
-def plot_persentase_upi_memiliki_kontak(df, kolom_kontak="NO TELP ENKRIP", figsize=(6, 6)):
-    """
-    Membuat donut plot persentase UPI yang memiliki kontak.
 
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        DataFrame asli
-    kolom_kontak : str
-        Nama kolom kontak (default: "KONTAK")
-    figsize : tuple
-        Ukuran figure
-
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-    """
-
-    # Buat flag memiliki kontak / tidak
-    memiliki_kontak = df[kolom_kontak].notna() & (df[kolom_kontak].astype(str).str.strip() != "")
-
-    jumlah_memiliki = memiliki_kontak.sum()
-    jumlah_tidak = (~memiliki_kontak).sum()
-
-    labels = ["Memiliki Kontak", "Tidak Memiliki Kontak"]
-    values = [jumlah_memiliki, jumlah_tidak]
-
-    fig, ax = plt.subplots(figsize=figsize)
-
-    wedges, texts, autotexts = ax.pie(
-        values,
-        labels=labels,
-        autopct="%1.1f%%",
-        startangle=90,
-        wedgeprops=dict(width=0.4)
-    )
-
-    fig.suptitle("Persentase UPI yang Memiliki Kontak", fontsize=20)
-    ax.axis("equal")
-
-    return fig
 
 def handle_multiselect_all(selected, default_label, full_list):
     # Jika default + pilihan lain → hapus default
@@ -234,4 +198,186 @@ def handle_multiselect_all(selected, default_label, full_list):
     # Jika pilih spesifik
     return selected
 
+def segmented_filter(label, options, df, column, map_condition):
+    """
+    label         : Judul segmented control
+    options       : List opsi segmented
+    df            : DataFrame yang akan difilter
+    column        : Nama kolom target
+    map_condition: Dict mapping opsi -> kondisi filter
+    """
 
+    selection = st.segmented_control(
+        label,
+        options,
+        default="Semuanya",
+        selection_mode="single"
+    )
+
+    if selection in map_condition:
+        return df[map_condition[selection]]
+    else:
+        return df
+    
+def donut_plot_kategori(
+    df,
+    column,
+    kategori_urutan,
+    label_tampil,
+    judul,
+    figsize=(6, 6)
+):
+    """
+    Donut plot kategori (aman jika data kosong).
+    """
+
+    # Jika dataframe kosong
+    if df.empty:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
+        ax.axis("off")
+        return fig
+
+    counts = (
+        df[column]
+        .value_counts()
+        .reindex(kategori_urutan, fill_value=0)
+    )
+
+    values = counts.values.astype(int)
+
+    # Jika total 0
+    if values.sum() == 0:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
+        ax.axis("off")
+        return fig
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    ax.pie(
+        values,
+        labels=label_tampil,
+        autopct="%1.1f%%",
+        startangle=90,
+        wedgeprops={"width": 0.4}
+    )
+
+    ax.axis("equal")
+    ax.set_title(judul)
+
+    total = int(values.sum())
+    ax.text(
+        0, 0,
+        f"Total\n{total}",
+        ha="center", va="center",
+        fontsize=12, weight="bold"
+    )
+
+    return fig
+
+# def plot_persentase_upi_memiliki_kontak(df, kolom_kontak="NO TELP ENKRIP", figsize=(6, 6)):
+#     """
+#     Membuat donut plot persentase UPI yang memiliki kontak.
+
+#     Parameters
+#     ----------
+#     df : pandas.DataFrame
+#         DataFrame asli
+#     kolom_kontak : str
+#         Nama kolom kontak (default: "KONTAK")
+#     figsize : tuple
+#         Ukuran figure
+
+#     Returns
+#     -------
+#     fig : matplotlib.figure.Figure
+#     """
+
+#     # Buat flag memiliki kontak / tidak
+#     memiliki_kontak = df[kolom_kontak].notna() & (df[kolom_kontak].astype(str).str.strip() != "")
+
+#     jumlah_memiliki = memiliki_kontak.sum()
+#     jumlah_tidak = (~memiliki_kontak).sum()
+
+#     labels = ["Memiliki Kontak", "Tidak Memiliki Kontak"]
+#     values = [jumlah_memiliki, jumlah_tidak]
+
+#     fig, ax = plt.subplots(figsize=figsize)
+
+#     wedges, texts, autotexts = ax.pie(
+#         values,
+#         labels=labels,
+#         autopct="%1.1f%%",
+#         startangle=90,
+#         wedgeprops=dict(width=0.4)
+#     )
+
+#     fig.suptitle("Persentase UPI yang Memiliki Kontak", fontsize=20)
+#     ax.axis("equal")
+#     total = values.sum()
+#     ax.text(0, 0, f"Total\n{total}", ha="center", va="center",
+#             fontsize=12, weight="bold")
+
+#     return fig
+
+
+
+def donut_plot_binary(
+    df,
+    kolom,
+    label_true,
+    label_false,
+    judul,
+    figsize=(6, 6)
+):
+    """
+    Donut plot untuk data biner (ada/tidak).
+    Aman jika dataframe kosong.
+    """
+
+    # Jika dataframe kosong
+    if df.empty:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
+        ax.axis("off")
+        return fig
+
+    kondisi_true = (
+        df[kolom].notna() &
+        (df[kolom].astype(str).str.strip() != "")
+    )
+
+    jumlah_true = int(kondisi_true.sum())
+    jumlah_false = int((~kondisi_true).sum())
+
+    values = [jumlah_true, jumlah_false]
+
+    # Jika semua nol
+    if sum(values) == 0:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
+        ax.axis("off")
+        return fig
+
+    labels = [label_true, label_false]
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    ax.pie(
+        values,
+        labels=labels,
+        autopct="%1.1f%%",
+        startangle=90,
+        wedgeprops=dict(width=0.4)
+    )
+
+    ax.axis("equal")
+    ax.set_title(judul)
+
+    total = sum(values)
+    ax.text(0, 0, f"Total\n{total}",
+            ha="center", va="center",
+            fontsize=12, weight="bold")
+
+    return fig
