@@ -5,6 +5,8 @@ import seaborn as sns
 import pandas as pd
 from matplotlib.ticker import MaxNLocator
 import streamlit as st
+import numpy as np
+
 
 def plot_upi_per_kecamatan(df, figsize=(12, 8)):
     """
@@ -59,6 +61,65 @@ def plot_upi_per_kecamatan(df, figsize=(12, 8)):
 
     return fig
 
+def value_count_top5_with_others(df, group_col, value_name="jumlah_proses"):
+    """
+    Mengelompokkan data berdasarkan kolom tertentu,
+    mengambil 5 kategori dengan jumlah terbesar,
+    dan menggabungkan sisanya ke dalam kategori 'Lain-lain'.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Data sumber yang akan diolah.
+
+    group_col : str
+        Nama kolom yang digunakan untuk pengelompokan
+        (contoh: "jenis_proses", "kecamatan", dll).
+
+    value_name : str, default="jumlah_upi"
+        Nama kolom hasil agregasi (jumlah per kategori).
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame berisi:
+        - 5 kategori terbesar
+        - 1 baris tambahan "Lain-lain" (jika ada sisa kategori)
+    """
+
+    # 1. Hitung jumlah per kategori
+    counted_df = df[group_col].value_counts().reset_index().rename(columns={"count": value_name})
+    # (df['jenis_proses'].value_counts().reset_index().rename(columns={"count": "xxxx"}))
+
+    # 2. Urutkan dari terbesar ke terkecil
+    sorted_df = counted_df.sort_values(
+        by=value_name,
+        ascending=False
+    ).copy()
+
+    # # 3. Ambil 5 kategori teratas
+    top_five = sorted_df.head(5).copy()
+
+    # # 4. Hitung total kategori di luar top 5
+    others_total = sorted_df.iloc[5:][value_name].sum()
+
+    # 5. Jika ada kategori lain, gabungkan sebagai "Lain-lain"
+    if others_total > 0:
+        others_row = pd.DataFrame({
+            group_col: ["Lain-lain"],
+            value_name: [others_total]
+        })
+
+        result_df = pd.concat(
+            [top_five, others_row],
+            ignore_index=True
+        )
+    else:
+        result_df = top_five
+
+    return result_df
+
+
 def plot_upi_per_olahan(df, figsize=(12, 8)):
     """
     Membuat bar chart Jumlah UPI per Kecamatan.
@@ -76,8 +137,9 @@ def plot_upi_per_olahan(df, figsize=(12, 8)):
     """
     df_olahan = (
         df.groupby("jenis_proses")
-        .size()
-        .reset_index(name="jumlah_upi")
+        .value_counts()
+        # .reset_index(name="jumlah_upi")
+        .reset_index()
         )
     
     # Urutkan dari terbesar
@@ -184,8 +246,6 @@ def plot_upi_jenis_proses_jenis_ikan_catplot(df, figsize=(12, 8)):
 
     return g.fig
 
-
-
 def handle_multiselect_all(selected, default_label, full_list):
     # Jika default + pilihan lain → hapus default
     if default_label in selected and len(selected) > 1:
@@ -198,12 +258,14 @@ def handle_multiselect_all(selected, default_label, full_list):
     # Jika pilih spesifik
     return selected
 
-def segmented_filter(label, options, df, column, map_condition):
+def segmented_filter(label, options, 
+                     df,#column, 
+                     map_condition
+                     ):
     """
     label         : Judul segmented control
     options       : List opsi segmented
     df            : DataFrame yang akan difilter
-    column        : Nama kolom target
     map_condition: Dict mapping opsi -> kondisi filter
     """
 
@@ -225,6 +287,7 @@ def donut_plot_kategori(
     kategori_urutan,
     label_tampil,
     judul,
+    # label_value=None,
     figsize=(6, 6)
 ):
     """
@@ -243,9 +306,11 @@ def donut_plot_kategori(
         .value_counts()
         .reindex(kategori_urutan, fill_value=0)
     )
-
+    # if label_value == None:
+    #     values = counts.values.astype(int)
+    # else:
+    #     values = label_value
     values = counts.values.astype(int)
-
     # Jika total 0
     if values.sum() == 0:
         fig, ax = plt.subplots(figsize=figsize)
@@ -254,11 +319,13 @@ def donut_plot_kategori(
         return fig
 
     fig, ax = plt.subplots(figsize=figsize)
-
+    # if label_value == None:
+    #     ax_pie_label = values
     ax.pie(
         values,
-        labels=label_tampil,
+        labels=None,
         autopct="%1.1f%%",
+        pctdistance=0.75,
         startangle=90,
         wedgeprops={"width": 0.4}
     )
@@ -274,53 +341,80 @@ def donut_plot_kategori(
         fontsize=12, weight="bold"
     )
 
+    ax.legend(
+        label_tampil,
+        title="Kategori",
+        loc="center left",
+        bbox_to_anchor=(1, 0.5)
+    )
+
     return fig
 
-# def plot_persentase_upi_memiliki_kontak(df, kolom_kontak="NO TELP ENKRIP", figsize=(6, 6)):
-#     """
-#     Membuat donut plot persentase UPI yang memiliki kontak.
+def donut_plot_kategori_agregat(
+    df,
+    column_kategori,
+    column_value,
+    label_tampil,
+    judul,
+    figsize=(6, 6)
+):
+    """
+    Donut plot untuk dataframe yang sudah berbentuk agregasi.
 
-#     Parameters
-#     ----------
-#     df : pandas.DataFrame
-#         DataFrame asli
-#     kolom_kontak : str
-#         Nama kolom kontak (default: "KONTAK")
-#     figsize : tuple
-#         Ukuran figure
+    df : DataFrame
+        Contoh kolom: [column_kategori, column_value]
+    column_kategori : str
+        Nama kolom kategori (misal: 'jenis_proses')
+    column_value : str
+        Nama kolom nilai (misal: 'jumlah_upi')
+    """
 
-#     Returns
-#     -------
-#     fig : matplotlib.figure.Figure
-#     """
+    # Jika dataframe kosong
+    if df.empty:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
+        ax.axis("off")
+        return fig
 
-#     # Buat flag memiliki kontak / tidak
-#     memiliki_kontak = df[kolom_kontak].notna() & (df[kolom_kontak].astype(str).str.strip() != "")
+    values = df[column_value].astype(int).values
 
-#     jumlah_memiliki = memiliki_kontak.sum()
-#     jumlah_tidak = (~memiliki_kontak).sum()
+    # Jika total 0
+    if values.sum() == 0:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
+        ax.axis("off")
+        return fig
 
-#     labels = ["Memiliki Kontak", "Tidak Memiliki Kontak"]
-#     values = [jumlah_memiliki, jumlah_tidak]
+    fig, ax = plt.subplots(figsize=figsize)
 
-#     fig, ax = plt.subplots(figsize=figsize)
+    ax.pie(
+        values,
+        labels=None,
+        autopct="%1.1f%%",
+        pctdistance=0.75,
+        startangle=90,
+        wedgeprops={"width": 0.4}
+    )
 
-#     wedges, texts, autotexts = ax.pie(
-#         values,
-#         labels=labels,
-#         autopct="%1.1f%%",
-#         startangle=90,
-#         wedgeprops=dict(width=0.4)
-#     )
+    ax.axis("equal")
+    ax.set_title(judul)
 
-#     fig.suptitle("Persentase UPI yang Memiliki Kontak", fontsize=20)
-#     ax.axis("equal")
-#     total = values.sum()
-#     ax.text(0, 0, f"Total\n{total}", ha="center", va="center",
-#             fontsize=12, weight="bold")
+    total = int(values.sum())
+    ax.text(
+        0, 0,
+        f"Total\n{total}",
+        ha="center", va="center",
+        fontsize=12, weight="bold"
+    )
 
-#     return fig
+    ax.legend(
+        label_tampil,
+        title="Kategori",
+        loc="center left",
+        bbox_to_anchor=(1, 0.5)
+    )
 
+    return fig
 
 
 def donut_plot_binary(
@@ -366,11 +460,20 @@ def donut_plot_binary(
 
     ax.pie(
         values,
-        labels=labels,
+        labels=None,
         autopct="%1.1f%%",
+        pctdistance=0.75,
         startangle=90,
         wedgeprops=dict(width=0.4)
     )
+    
+    ax.legend(
+        labels,
+        title="Kategori",
+        loc="center left",
+        bbox_to_anchor=(1, 0.5)
+    )
+       
 
     ax.axis("equal")
     ax.set_title(judul)
@@ -379,5 +482,160 @@ def donut_plot_binary(
     ax.text(0, 0, f"Total\n{total}",
             ha="center", va="center",
             fontsize=12, weight="bold")
+
+    return fig
+
+def parse_produksi(x):
+    """
+    Mengubah nilai campuran menjadi float:
+    - '200-300' -> 250
+    - '1600/400' -> 1000
+    - '350' -> 350
+    - None, '', 0 -> NaN
+    """
+    if pd.isna(x) or x == '' or x == 0:
+        return np.nan
+
+    if isinstance(x, str):
+        if '-' in x:
+            a, b = x.split('-')
+            return (float(a) + float(b)) / 2
+        if '/' in x:
+            a, b = x.split('/')
+            return (float(a) + float(b)) / 2
+        return float(x)
+
+    return float(x)
+
+def add_dynamic_noise(series, noise_level=0.15, wave_strength=0.05, seed=None):
+    """
+    Menambahkan variasi dinamis + gelombang agar data terlihat alami.
+
+    Parameters
+    ----------
+    series : pd.Series
+        Data numerik.
+
+    noise_level : float
+        Intensitas random utama (0.10 - 0.25 disarankan)
+
+    wave_strength : float
+        Kekuatan pola gelombang
+
+    seed : int or None
+        Reproducible randomness
+    """
+
+    if seed is not None:
+        np.random.seed(seed)
+
+    n = len(series)
+
+    # Random noise
+    random_noise = np.random.normal(
+        loc=0,
+        scale=noise_level,
+        size=n
+    )
+
+    # Wave noise
+    x = np.linspace(0, 2*np.pi, n)
+    wave_noise = np.sin(x) * wave_strength
+
+    # Gabungkan
+    combined_noise = random_noise + wave_noise
+
+    return series * (1 + combined_noise)
+
+def plot_tren_produksi(
+    df,
+    kolom_tanggal,
+    kolom_nilai,
+    kolom_grup=None,
+    judul="Tren Produksi",
+    figsize=(10, 5),
+    tampil_legend=False,
+    watermark_text="Data Dummy"
+):
+    """
+    Membuat line plot time-series dari data produksi.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Dataframe yang berisi data time series.
+
+    kolom_tanggal : str
+        Nama kolom tanggal atau "index".
+
+    kolom_nilai : str
+        Nama kolom berisi nilai numerik (y-axis).
+
+    kolom_grup : str, optional
+        Kolom pengelompokan (misal: 'NAMA UPI').
+
+    judul : str
+        Judul grafik.
+
+    figsize : tuple
+        Ukuran figure matplotlib.
+
+    tampil_legend : bool
+        Menampilkan legend atau tidak.
+
+    watermark_text : str
+        Teks watermark pada grafik.
+    """
+
+    # Jika dataframe kosong
+    if df.empty:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center")
+        ax.axis("off")
+        return fig
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Tentukan sumbu X
+    if kolom_tanggal == "index":
+        x_data = df.index
+    else:
+        x_data = df[kolom_tanggal]
+
+    # Plot
+    sns.lineplot(
+        data=df,
+        x=x_data,
+        y=kolom_nilai,
+        hue=kolom_grup,
+        legend=tampil_legend,
+        ax=ax
+    )
+
+    # Judul & Label
+    ax.set_title(judul)
+    ax.set_xlabel("Tanggal")
+    ax.set_ylabel(kolom_nilai)
+
+    # Grid
+    ax.grid(
+        True,
+        linestyle="--",
+        alpha=0.4
+    )
+
+    # Watermark
+    ax.text(
+        0.5, 0.5,
+        watermark_text,
+        transform=ax.transAxes,
+        fontsize=40,
+        color="gray",
+        alpha=0.25,
+        ha="center",
+        va="center",
+        rotation=30,
+        weight="bold"
+    )
 
     return fig

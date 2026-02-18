@@ -21,7 +21,8 @@ sys.path.append(BASE_DIR)
 from LIB.charts import (
     plot_upi_per_kecamatan,plot_upi_per_olahan,plot_upi_jenis_proses_jenis_ikan_catplot,
     handle_multiselect_all,segmented_filter,
-    donut_plot_kategori,donut_plot_binary
+    donut_plot_kategori,donut_plot_binary,value_count_top5_with_others,
+    donut_plot_kategori_agregat,parse_produksi,add_dynamic_noise,plot_tren_produksi
     )
 
 
@@ -85,7 +86,7 @@ df["PENERIMAAN BANTUAN"] = (
     .replace("", "Belum")
 )
 
-cols = ["jenis_ikan", "jenis_proses", "KECAMATAN", "DESA",'PENERIMAAN BANTUAN']
+cols = ["jenis_ikan", "jenis_proses", "KECAMATAN", "DESA",'PENERIMAAN BANTUAN','NAMA UPI']
 
 # df[cols] = df[cols].apply(lambda x: x.str.lower())
 for col in cols:
@@ -98,16 +99,37 @@ for col in cols:
 
 
 
+df_clean = df.copy()
+df_clean = df_clean.drop(columns=['NO'])
+kolom_identitas = ['NAMA UPI', 'DESA', 'KECAMATAN', 'PENERIMAAN BANTUAN', 'JENIS KEGIATAN PENGOLAHAN','NO TELP ENKRIP', 'NAMA PEMILIK ENKRIP', 'clean', 'jenis_proses', 'jenis_ikan']
 
-# ============================================================
-# RUN LOADING
-# ============================================================
-# asyncio.run(loading_animation())
+# 3. Lakukan Melt
+df_clean = df_clean.melt(
+    id_vars=kolom_identitas, 
+    var_name='Tanggal', 
+    value_name='Jumlah Produksi'
+)
+df_clean['Tanggal'] = pd.to_datetime(df_clean['Tanggal'], errors='coerce')
+df_clean = df_clean.set_index('Tanggal')
+df_clean['Jumlah Produksi Final'] = (
+    df_clean['Jumlah Produksi']
+    .apply(parse_produksi)
+    .interpolate(method='time')
+    .interpolate(method='linear')
+    .ffill()
+    .bfill()
+)
 
+# df_clean['Jumlah Produksi Final'] = add_random_noise(
+#     df_clean['Jumlah Produksi Final'],
+#     noise_level=0.08   # 8% variasi
+# ).round(1)
 
-# ============================================================
-# SIDEBAR
-# ============================================================
+df_clean['Jumlah Produksi Final'] = add_dynamic_noise(
+    df_clean['Jumlah Produksi Final'],
+    noise_level=0.18,
+    wave_strength=0.07
+).round(1)
 
 
 
@@ -138,8 +160,6 @@ st.divider()
 # st.sidebar.header("Filter Data")
 with st.sidebar:
     st.header("Filter Data")
-
-
 # =========================
 # JENIS PROSES
 # =========================
@@ -163,7 +183,6 @@ with st.sidebar:
         full_list=list_proses
     )
     df_filtered_1 = df[(df["jenis_proses"].isin(final_jenis_proses))]
-
 # =========================
 # JENIS IKAN
 # =========================
@@ -181,9 +200,6 @@ with st.sidebar:
         full_list=list_ikan
     )
     df_filtered_1 = df_filtered_1[(df_filtered_1["jenis_ikan"].isin(final_jenis_ikan))]
-        
-        
-    
 # =========================
 # KECAMATAN
 # =========================
@@ -201,8 +217,6 @@ with st.sidebar:
         full_list=list_kecamatan
     )
     df_filtered_1 = df_filtered_1[(df_filtered_1["KECAMATAN"].isin(final_kecamatan))]
-       
-    
 # =========================
 # DESA
 # =========================
@@ -220,7 +234,6 @@ with st.sidebar:
         full_list=list_desa
     )
     df_filtered_1 = df_filtered_1[(df_filtered_1["DESA"].isin(final_desa))]
-    
 # =========================
 # Kontak
 # =========================
@@ -235,7 +248,7 @@ with st.sidebar:
         "Filter Kontak",
         options_kontak,
         df_filtered_1,
-        "NO TELP ENKRIP",
+        # "NO TELP ENKRIP",
         kontak_conditions
     )
 # =========================
@@ -252,44 +265,57 @@ with st.sidebar:
         "Filter Bantuan",
         options_bantuan,
         df_filtered_1,
-        "PENERIMAAN BANTUAN",
+        # "PENERIMAAN BANTUAN",
         bantuan_conditions
     )
-
-
 # =========================
 # DKP IMAGE 
 # =========================
-
     st.image(LOGO_DKP, width=200)
-# ============================================================
-# BODY DISPLAY CHART
-# ============================================================
-# with st.container():
-#     col1, col2 = st.columns([1, 1])   # rasio seimbang
-#     with col1:
-#         st.subheader(
-#             "Jumlah Unit Pengolahan Ikan (UPI) per Kecamatan"
-#         )
-#     with col2:
-#         st.subheader(
-#             "Proporsi Unit Pengolahan Ikan (UPI) Berdasarkan Jenis Olahan"
-#         )
-#st.divider()
+
 
 with st.container():
+    fig_lineplot = plot_tren_produksi(
+        df=df_clean,
+        kolom_tanggal="index",
+        kolom_nilai="Jumlah Produksi Final",
+        judul="Tren Jumlah Produksi UPI",
+        watermark_text="DATA DUMMY",
+        # kolom_grup='KECAMATAN'
+    )
+
+    st.pyplot(fig_lineplot, use_container_width=True)
     # ============================================================
     # BAR CHART - JUMLAH UPI PER KECAMATAN
     # ============================================================
     fig1 = plot_upi_per_kecamatan(df)
-    fig2 = plot_upi_per_olahan(df)
+    # fig2 = plot_upi_per_olahan(df)
+    df_count_top_5_jenis_olahan = value_count_top5_with_others(df, group_col="jenis_proses", value_name="jumlah_upi")
+    # df_count_top_5_jumlah_jenis_olahan_list = df_count_top_5_jenis_olahan["jumlah_upi"].tolist()
+    # df_count_top_5_jenis_olahan_list = df_count_top_5_jenis_olahan["jenis_proses"].tolist()
+    label_tampil_fig2 = [
+        f"{jenis} = {jumlah}"
+        for jumlah, jenis in zip(
+            df_count_top_5_jenis_olahan["jumlah_upi"].tolist(),
+            df_count_top_5_jenis_olahan["jenis_proses"].tolist()
+        )
+    ]
+    
+    fig2 = donut_plot_kategori_agregat(
+        df=df_count_top_5_jenis_olahan,
+        column_kategori="jenis_proses",
+        column_value="jumlah_upi",
+        label_tampil=label_tampil_fig2,
+        judul="Proporsi Jenis Proses UPI"
+    )
+
     
     col1, col2 = st.columns([1, 1])   # rasio seimbang
     with col1:
         st.pyplot(fig1, use_container_width=True)
     with col2:
         st.pyplot(fig2, use_container_width=True)
-        
+    
 # ============================================================
 # BODY SEC 2
 # ============================================================
@@ -334,13 +360,15 @@ with st.container():
         with st.container():
             st.pyplot(fig4, use_container_width=True)
             st.pyplot(fig5, use_container_width=True)
-st.write(df_filtered_1['PENERIMAAN BANTUAN'].value_counts())
+# st.write(df_filtered_1['PENERIMAAN BANTUAN'].value_counts())
 st.divider()
 with st.container():
     col1,col2 = st.columns([1,1])
-    
-st.dataframe(df)
+
+
+
+
+
 st.divider()
 st.dataframe(df_filtered_1)
-df_filtered_2 = (df_filtered_1.groupby("NO TELP ENKRIP").size())#.reset_index(name="jumlah_upi"))
-st.dataframe(df_filtered_2)
+
