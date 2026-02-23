@@ -20,9 +20,10 @@ sys.path.append(BASE_DIR)
 
 from LIB.charts import (
     plot_upi_per_kecamatan,plot_upi_per_olahan,plot_upi_jenis_proses_jenis_ikan_catplot,
-    handle_multiselect_all,segmented_filter,
+    handle_multiselect_all,helper_segmented_filter,
     donut_plot_kategori,donut_plot_binary,value_count_top5_with_others,
-    donut_plot_kategori_agregat,parse_produksi,add_dynamic_noise,plot_tren_produksi
+    donut_plot_kategori_agregat,parse_produksi,add_dynamic_noise,plot_tren_produksi_total,
+    handle_segmented_filter,plot_line_chart
     )
 
 
@@ -132,7 +133,7 @@ df_clean['Jumlah Produksi Final'] = add_dynamic_noise(
 ).round(1)
 
 
-
+# df_clean_filtered = df_clean.copy()
 # ============================================================
 # MAIN TITLE
 # ============================================================
@@ -182,7 +183,8 @@ with st.sidebar:
         default_label="Semua Jenis Proses",
         full_list=list_proses
     )
-    df_filtered_1 = df[(df["jenis_proses"].isin(final_jenis_proses))]
+    df_clean_filtered = df_clean[(df_clean["jenis_proses"].isin(final_jenis_proses))].copy()
+    # df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['jenis_proses'].isin(final_jenis_proses)]
 # =========================
 # JENIS IKAN
 # =========================
@@ -199,7 +201,7 @@ with st.sidebar:
         default_label="Semua Jenis Ikan",
         full_list=list_ikan
     )
-    df_filtered_1 = df_filtered_1[(df_filtered_1["jenis_ikan"].isin(final_jenis_ikan))]
+    df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['jenis_ikan'].isin(final_jenis_ikan)]
 # =========================
 # KECAMATAN
 # =========================
@@ -216,11 +218,12 @@ with st.sidebar:
         default_label="Semua Kecamatan",
         full_list=list_kecamatan
     )
-    df_filtered_1 = df_filtered_1[(df_filtered_1["KECAMATAN"].isin(final_kecamatan))]
+    df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['KECAMATAN'].isin(final_kecamatan)]
+
 # =========================
 # DESA
 # =========================
-    list_desa = sorted(df_filtered_1["DESA"].dropna().unique())
+    list_desa = sorted(df_clean_filtered["DESA"].dropna().unique())
     opsi_desa = ["Semua Desa"] + list_desa
 
     pilih_desa = st.multiselect(
@@ -233,40 +236,41 @@ with st.sidebar:
         default_label="Semua Desa",
         full_list=list_desa
     )
-    df_filtered_1 = df_filtered_1[(df_filtered_1["DESA"].isin(final_desa))]
+    df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['DESA'].isin(final_desa)]
+
 # =========================
 # Kontak
 # =========================
     options_kontak = ["Semuanya", "Memiliki Kontak", "Tidak Punya Kontak"]
 
-    kontak_conditions = {
-        "Memiliki Kontak": df_filtered_1["NO TELP ENKRIP"].notna(),
-        "Tidak Punya Kontak": df_filtered_1["NO TELP ENKRIP"].isna()
+    kontak_conditions= {
+        "Memiliki Kontak": df_clean_filtered["NO TELP ENKRIP"].notna(),
+        "Tidak Punya Kontak": df_clean_filtered["NO TELP ENKRIP"].isna()
     }
     
-    df_filtered_1 = segmented_filter(
-        "Filter Kontak",
-        options_kontak,
-        df_filtered_1,
-        # "NO TELP ENKRIP",
-        kontak_conditions
+    kontak_filter_option = handle_segmented_filter(label='Filter Kontak', options=options_kontak)
+
+    
+    df_clean_filtered = helper_segmented_filter(
+        df_clean_filtered,
+        map_condition=kontak_conditions,
+        selection=kontak_filter_option
     )
+
+
 # =========================
 # Bantuan
 # =========================
     options_bantuan = ["Semuanya", "Sudah Menerima Bantuan", "Belum Menerima Bantuan"]
-
     bantuan_conditions = {
-        "Sudah Menerima Bantuan": df_filtered_1["PENERIMAAN BANTUAN"] == "sudah",
-        "Belum Menerima Bantuan": df_filtered_1["PENERIMAAN BANTUAN"] == "belum"
+        "Sudah Menerima Bantuan": df_clean_filtered["PENERIMAAN BANTUAN"] == "sudah",
+        "Belum Menerima Bantuan": df_clean_filtered["PENERIMAAN BANTUAN"] == "belum"
     }
-    
-    df_filtered_1 = segmented_filter(
-        "Filter Bantuan",
-        options_bantuan,
-        df_filtered_1,
-        # "PENERIMAAN BANTUAN",
-        bantuan_conditions
+    bantuan_filter_option = handle_segmented_filter(label='Filter Bantuan', options=options_bantuan)
+    df_clean_filtered = helper_segmented_filter(
+        df_clean_filtered,
+        map_condition=bantuan_conditions,
+        selection=bantuan_filter_option
     )
 # =========================
 # DKP IMAGE 
@@ -275,7 +279,7 @@ with st.sidebar:
 
 
 with st.container():
-    fig_lineplot = plot_tren_produksi(
+    fig_lineplot = plot_tren_produksi_total(
         df=df_clean,
         kolom_tanggal="index",
         kolom_nilai="Jumlah Produksi Final",
@@ -333,10 +337,10 @@ st.subheader("Data :blue[Terfilter]")
 #     (df["jenis_ikan"].isin(final_ikan))
 # ]
 # st.divider()
-fig3 = plot_upi_jenis_proses_jenis_ikan_catplot(df_filtered_1)
+fig3 = plot_upi_jenis_proses_jenis_ikan_catplot(df_clean_filtered)
 # fig4 = plot_persentase_upi_memiliki_kontak(df_filtered_1)
 fig4 = donut_plot_binary(
-    df_filtered_1,
+    df_clean_filtered,
     kolom="NO TELP ENKRIP",
     # judul="",
     label_true="Memiliki Kontak",
@@ -345,7 +349,7 @@ fig4 = donut_plot_binary(
 )
 
 fig5 = donut_plot_kategori(
-    df_filtered_1,
+    df_clean_filtered,
     "PENERIMAAN BANTUAN",
     kategori_urutan=["sudah", "belum"],
     label_tampil=["Sudah Menerima Bantuan", "Belum Menerima Bantuan"],
@@ -363,12 +367,48 @@ with st.container():
 # st.write(df_filtered_1['PENERIMAAN BANTUAN'].value_counts())
 st.divider()
 with st.container():
-    col1,col2 = st.columns([1,1])
+    
+    col1,col2 = st.columns([3,1])
+    
+    with col2:
+        # hue_fig5 = ["North", "East", "South", "West"]
+        # selection_hue_fig5 = st.segmented_control(
+        #     "Hue", hue_fig5, selection_mode="single"
+        # )
+        lineplot_filtered_hue = st.selectbox(
+            "Kelompokkan Berdasarkan",
+            ("Status Bantuan", "Jenis Olahan", "Jenis Ikan Yang Diolah",'Kecamatan','Desa','Tidak Ada'),
+        )
+        lineplot_filtered_hue_map = {
+            "Status Bantuan":'PENERIMAAN BANTUAN', 
+            "Jenis Olahan":'jenis_proses', 
+            "Jenis Ikan Yang Diolah":'jenis_ikan',
+            'Tidak Ada':None,
+            'Kecamatan':'KECAMATAN',
+            'Desa':'DESA'
+        }
+        fig6 = plot_line_chart(
+            df_clean_filtered,
+            x_axis=df_clean_filtered.index,
+            y_axis='Jumlah Produksi Final',
+            y_label='Jumlah Produksi',
+            kolom_grup=lineplot_filtered_hue_map.get(lineplot_filtered_hue),
+            judul='Trend Produksi Terfilter',
+            figsize=(10, 5),
+            tampil_legend=True,
+            watermark_text="Data Dummy",
+            # tampil_legend=True
+        )
+    
+    with col1:
+        st.pyplot(fig6, use_container_width=True)
 
 
 
 
 
-st.divider()
-st.dataframe(df_filtered_1)
+
+# st.divider()
+# st.dataframe(df_clean)
+# st.dataframe(df_clean_filtered)
 

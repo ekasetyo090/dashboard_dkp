@@ -231,7 +231,7 @@ def plot_upi_jenis_proses_jenis_ikan_catplot(df, figsize=(12, 8)):
     )
 
     g.set_axis_labels("Jenis Proses", "Jumlah UPI")
-    g.fig.suptitle("Jumlah UPI Berdasarkan Jenis Proses dan Jenis Ikan", fontsize=20)
+    g.fig.suptitle("Jumlah UPI Berdasarkan Jenis Proses dan Jenis Ikan", fontsize=12)
 
     # Rotasi label x
     for ax in g.axes.flat:
@@ -258,9 +258,19 @@ def handle_multiselect_all(selected, default_label, full_list):
     # Jika pilih spesifik
     return selected
 
-def segmented_filter(label, options, 
-                     df,#column, 
-                     map_condition
+def handle_segmented_filter(label,options):
+    selection = st.segmented_control(
+        label,
+        options,
+        default="Semuanya",
+        selection_mode="single"
+    )
+    return selection
+
+def helper_segmented_filter(
+                     df,
+                     map_condition,
+                     selection
                      ):
     """
     label         : Judul segmented control
@@ -269,12 +279,6 @@ def segmented_filter(label, options,
     map_condition: Dict mapping opsi -> kondisi filter
     """
 
-    selection = st.segmented_control(
-        label,
-        options,
-        default="Semuanya",
-        selection_mode="single"
-    )
 
     if selection in map_condition:
         return df[map_condition[selection]]
@@ -547,7 +551,7 @@ def add_dynamic_noise(series, noise_level=0.15, wave_strength=0.05, seed=None):
 
     return series * (1 + combined_noise)
 
-def plot_tren_produksi(
+def plot_tren_produksi_total(
     df,
     kolom_tanggal,
     kolom_nilai,
@@ -637,5 +641,97 @@ def plot_tren_produksi(
         rotation=30,
         weight="bold"
     )
+
+    return fig
+
+def plot_line_chart(
+    data,
+    x_axis,
+    y_axis,
+    y_label:str=None,
+    kolom_grup=None,
+    judul:str=None,
+    figsize=(10, 5),
+    tampil_legend=False,
+    watermark_text="Data Dummy"
+):
+    """
+    Membuat line plot time-series dari data produksi.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Dataframe yang berisi data time series.
+
+    kolom_tanggal : str
+        Nama kolom tanggal atau "index".
+
+    kolom_nilai : str
+        Nama kolom berisi nilai numerik (y-axis).
+
+    kolom_grup : str, optional
+        Kolom pengelompokan (misal: 'NAMA UPI').
+
+    judul : str
+        Judul grafik.
+
+    figsize : tuple
+        Ukuran figure matplotlib.
+
+    tampil_legend : bool
+        Menampilkan legend atau tidak.
+
+    watermark_text : str
+        Teks watermark pada grafik.
+    """
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+
+
+    # Plot
+    sns.lineplot(
+        data=data,
+        x=x_axis,
+        y=y_axis,
+        hue=kolom_grup,
+        legend=tampil_legend,
+        ax=ax
+    )
+
+    # Judul & Label
+    ax.set_title(judul)
+    ax.set_xlabel("Tanggal")
+    ax.set_ylabel(y_label)
+
+    # Grid
+    ax.grid(
+        True,
+        linestyle="--",
+        alpha=0.4
+    )
+
+    # Watermark
+    ax.text(
+        0.5, 0.5,
+        watermark_text,
+        transform=ax.transAxes,
+        fontsize=40,
+        color="gray",
+        alpha=0.25,
+        ha="center",
+        va="center",
+        rotation=30,
+        weight="bold"
+    )
+    if tampil_legend:
+        ax.legend(
+            title="Keterangan",
+            bbox_to_anchor=(1.02, 1),
+            loc="upper left",
+            borderaxespad=0
+        )
+    else:
+        pass
 
     return fig
