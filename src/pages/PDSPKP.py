@@ -4,12 +4,9 @@
 
 import base64
 import asyncio
-import nest_asyncio
 
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+
 import streamlit as st
 
 import sys
@@ -27,7 +24,7 @@ from LIB.charts import (
     )
 
 
-nest_asyncio.apply()
+
 
 
 # ============================================================
@@ -64,17 +61,17 @@ def encode_image(path):
         return base64.b64encode(f.read()).decode()
 
 
-async def loading_animation():
-    placeholder = st.empty()
+# async def loading_animation():
+#     placeholder = st.empty()
 
-    with placeholder.container():
-        with st.spinner("Memuat data..."):
-            progress = st.progress(0)
-            for i in range(100):
-                await asyncio.sleep(0.01)
-                progress.progress(i + 1)
+#     with placeholder.container():
+#         with st.spinner("Memuat data..."):
+#             progress = st.progress(0)
+#             for i in range(100):
+#                 await asyncio.sleep(0.01)
+#                 progress.progress(i + 1)
 
-    placeholder.empty()
+#     placeholder.empty()
 
 
 # ============================================================
