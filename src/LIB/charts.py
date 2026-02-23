@@ -1,9 +1,6 @@
 # charts.py
 
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
-# from matplotlib.ticker import MaxNLocator
 import streamlit as st
 import numpy as np
 import plotly.express as px
