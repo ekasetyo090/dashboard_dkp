@@ -46,7 +46,7 @@ def plot_upi_per_kecamatan(df):
     # Styling tambahan
     fig.update_layout(
         xaxis_tickangle=-45,
-        title_x=0.5,  # center title
+        title_x=0.1,  # center title
         yaxis=dict(showgrid=True),
     )
 
@@ -202,7 +202,7 @@ def plot_upi_jenis_proses_jenis_ikan_catplot(df, figsize=(12, 8)):
     )
 
     fig.update_layout(
-        title_x=0.5,
+        title_x=0.1,
         legend_title="Jenis Ikan",
         height=600
     )
@@ -323,7 +323,7 @@ def donut_plot_kategori(
 
     fig.update_layout(
         title=judul,
-        title_x=0,
+        title_x=0.1,
         legend_title="Kategori",
         # height=figsize[1] * 100,
         # width=figsize[0] * 100
@@ -503,7 +503,7 @@ def donut_plot_binary(
     # =========================
     fig.update_layout(
         title=judul,
-        title_x=0.5,
+        title_x=0.1,
         legend_title="Kategori",
         height=figsize[0] * 100,
         width=figsize[1] * 100,
@@ -698,7 +698,7 @@ def plot_tren_produksi_total(
     # =========================
     fig.update_layout(
         title=judul,
-        title_x=0.5,
+        title_x=0.1,
         height=figsize[1] * 100,
         width=figsize[0] * 100,
         showlegend=tampil_legend,
@@ -880,7 +880,7 @@ def plot_line_chart(
     # =========================
     fig.update_layout(
         title=judul,
-        title_x=0.5,
+        title_x=0.1,
         height=figsize[1] * 100,
         width=figsize[0] * 100,
         showlegend=tampil_legend,

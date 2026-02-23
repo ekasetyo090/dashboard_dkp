@@ -314,7 +314,7 @@ with st.container():
     )
 
     
-    col1, col2 = st.columns([1, 1])   # rasio seimbang
+    col1, col2 = st.columns([2, 1])   # rasio seimbang
     with col1:
         st.plotly_chart(fig1, use_container_width=True)
     with col2:
@@ -357,7 +357,7 @@ fig5 = donut_plot_kategori(
 )
 
 with st.container():
-    col1,col2 = st.columns([2,1])
+    col1,col2 = st.columns([1,1])
     with col1:
         st.plotly_chart(fig3, use_container_width=True)
     with col2:
@@ -365,37 +365,45 @@ with st.container():
             st.plotly_chart(fig4, use_container_width=True)
             
 # st.write(df_filtered_1['PENERIMAAN BANTUAN'].value_counts())
-st.divider()
+# st.divider()
 with st.container():
     
     col1,col2 = st.columns([2,1])
     with col1:
+        col11,col21 = st.columns([4,1])
         
-        lineplot_filtered_hue = st.selectbox(
-            "Kelompokkan Berdasarkan",
-            ("Status Bantuan", "Jenis Olahan", "Jenis Ikan Yang Diolah",'Kecamatan','Desa','Tidak Ada'),
-        )
-        lineplot_filtered_hue_map = {
-            "Status Bantuan":'PENERIMAAN BANTUAN', 
-            "Jenis Olahan":'jenis_proses', 
-            "Jenis Ikan Yang Diolah":'jenis_ikan',
-            'Tidak Ada':None,
-            'Kecamatan':'KECAMATAN',
-            'Desa':'DESA'
-        }
-        fig6 = plot_line_chart(
-            df_clean_filtered,
-            x_axis=df_clean_filtered.index,
-            y_axis='Jumlah Produksi Final',
-            y_label='Jumlah Produksi',
-            kolom_grup=lineplot_filtered_hue_map.get(lineplot_filtered_hue),
-            judul='Trend Produksi Terfilter',
-            figsize=(10, 5),
-            tampil_legend=True,
-            watermark_text="Data Dummy",
-            # tampil_legend=True
-        )
-        st.plotly_chart(fig6, use_container_width=True)
+        with col21:
+            
+            lineplot_filtered_hue = st.selectbox(
+                "Kelompokkan Berdasarkan",
+                ("Status Bantuan", "Jenis Olahan", "Jenis Ikan Yang Diolah",'Kecamatan','Desa','Tidak Ada'),
+                placeholder="Pilih Metode"
+                # index=5
+            )
+
+        with col11:
+            
+            lineplot_filtered_hue_map = {
+                "Status Bantuan":'PENERIMAAN BANTUAN', 
+                "Jenis Olahan":'jenis_proses', 
+                "Jenis Ikan Yang Diolah":'jenis_ikan',
+                'Tidak Ada':None,
+                'Kecamatan':'KECAMATAN',
+                'Desa':'DESA'
+            }
+            fig6 = plot_line_chart(
+                df_clean_filtered,
+                x_axis=df_clean_filtered.index,
+                y_axis='Jumlah Produksi Final',
+                y_label='Jumlah Produksi',
+                kolom_grup=lineplot_filtered_hue_map.get(lineplot_filtered_hue),
+                judul='Trend Produksi Terfilter',
+                figsize=(10, 5),
+                tampil_legend=True,
+                watermark_text="Data Dummy",
+                # tampil_legend=True
+            )
+            st.plotly_chart(fig6, use_container_width=True)
 
     with col2:
         st.plotly_chart(fig5, use_container_width=True)
