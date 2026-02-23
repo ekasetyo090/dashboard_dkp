@@ -19,7 +19,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(BASE_DIR)
 
 from LIB.charts import (
-    plot_upi_per_kecamatan,plot_upi_per_olahan,plot_upi_jenis_proses_jenis_ikan_catplot,
+    plot_upi_per_kecamatan,plot_upi_jenis_proses_jenis_ikan_catplot,
     handle_multiselect_all,helper_segmented_filter,
     donut_plot_kategori,donut_plot_binary,value_count_top5_with_others,
     donut_plot_kategori_agregat,parse_produksi,add_dynamic_noise,plot_tren_produksi_total,
@@ -288,7 +288,7 @@ with st.container():
         # kolom_grup='KECAMATAN'
     )
 
-    st.pyplot(fig_lineplot, use_container_width=True)
+    st.plotly_chart(fig_lineplot, use_container_width=True)
     # ============================================================
     # BAR CHART - JUMLAH UPI PER KECAMATAN
     # ============================================================
@@ -307,18 +307,18 @@ with st.container():
     
     fig2 = donut_plot_kategori_agregat(
         df=df_count_top_5_jenis_olahan,
-        column_kategori="jenis_proses",
+        # column_kategori="jenis_proses",
         column_value="jumlah_upi",
-        label_tampil=label_tampil_fig2,
+        label_tampil=df_count_top_5_jenis_olahan["jenis_proses"].tolist(),
         judul="Proporsi Jenis Proses UPI"
     )
 
     
     col1, col2 = st.columns([1, 1])   # rasio seimbang
     with col1:
-        st.pyplot(fig1, use_container_width=True)
+        st.plotly_chart(fig1, use_container_width=True)
     with col2:
-        st.pyplot(fig2, use_container_width=True)
+        st.plotly_chart(fig2, use_container_width=True)
     
 # ============================================================
 # BODY SEC 2
@@ -353,28 +353,24 @@ fig5 = donut_plot_kategori(
     "PENERIMAAN BANTUAN",
     kategori_urutan=["sudah", "belum"],
     label_tampil=["Sudah Menerima Bantuan", "Belum Menerima Bantuan"],
-    judul="Persentase Penerimaan Bantuan",figsize=(6, 9)
+    judul="Persentase Penerimaan Bantuan"
 )
 
 with st.container():
     col1,col2 = st.columns([2,1])
     with col1:
-        st.pyplot(fig3, use_container_width=True)
+        st.plotly_chart(fig3, use_container_width=True)
     with col2:
         with st.container():
-            st.pyplot(fig4, use_container_width=True)
-            st.pyplot(fig5, use_container_width=True)
+            st.plotly_chart(fig4, use_container_width=True)
+            
 # st.write(df_filtered_1['PENERIMAAN BANTUAN'].value_counts())
 st.divider()
 with st.container():
     
-    col1,col2 = st.columns([3,1])
-    
-    with col2:
-        # hue_fig5 = ["North", "East", "South", "West"]
-        # selection_hue_fig5 = st.segmented_control(
-        #     "Hue", hue_fig5, selection_mode="single"
-        # )
+    col1,col2 = st.columns([2,1])
+    with col1:
+        
         lineplot_filtered_hue = st.selectbox(
             "Kelompokkan Berdasarkan",
             ("Status Bantuan", "Jenis Olahan", "Jenis Ikan Yang Diolah",'Kecamatan','Desa','Tidak Ada'),
@@ -399,9 +395,18 @@ with st.container():
             watermark_text="Data Dummy",
             # tampil_legend=True
         )
+        st.plotly_chart(fig6, use_container_width=True)
+
+    with col2:
+        st.plotly_chart(fig5, use_container_width=True)
+        # hue_fig5 = ["North", "East", "South", "West"]
+        # selection_hue_fig5 = st.segmented_control(
+        #     "Hue", hue_fig5, selection_mode="single"
+        # )
+        
+        
     
-    with col1:
-        st.pyplot(fig6, use_container_width=True)
+    
 
 
 

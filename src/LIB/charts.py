@@ -3,26 +3,28 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from matplotlib.ticker import MaxNLocator
+# from matplotlib.ticker import MaxNLocator
 import streamlit as st
 import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.colors import hex_to_rgb
 
 
-def plot_upi_per_kecamatan(df, figsize=(12, 8)):
+def plot_upi_per_kecamatan(df):
     """
-    Membuat bar chart Jumlah UPI per Kecamatan.
+    Membuat bar chart Jumlah UPI per Kecamatan (Plotly version)
 
     Parameters
     ----------
     df : pandas.DataFrame
         DataFrame asli
-    figsize : tuple, optional
-        Ukuran figure (default: (12, 8))
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
+    fig : plotly.graph_objects.Figure
     """
+
     df_kec = (
         df
         .groupby("KECAMATAN")
@@ -30,34 +32,23 @@ def plot_upi_per_kecamatan(df, figsize=(12, 8)):
         .reset_index(name="jumlah_upi")
     )
 
-    fig, ax = plt.subplots(figsize=figsize)
-
-    sns.barplot(
-        data=df_kec,
+    fig = px.bar(
+        df_kec,
         x="KECAMATAN",
         y="jumlah_upi",
-        ax=ax
+        title="Jumlah Unit Pengolahan Ikan (UPI) per Kecamatan",
+        labels={
+            "KECAMATAN": "Kecamatan",
+            "jumlah_upi": "Jumlah UPI"
+        }
     )
 
-   
-    ax.set_xlabel("Kecamatan")
-    ax.set_ylabel("Jumlah UPI")
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
-
-    # Garis rata-rata
-#    avg_value = df_kec["jumlah_upi"].mean()
-#    ax.axhline(
-#        y=avg_value,
-#        linestyle="--",
-#        linewidth=2,
-#        label="Rata-rata"
-#    )
-
-    ax.grid(axis="y", linestyle="--", alpha=0.5)
-    fig.suptitle("Jumlah Unit Pengolahan Ikan (UPI) per Kecamatan", fontsize=30)
-    #ax.legend(title="Keterangan")
-
-    plt.tight_layout()
+    # Styling tambahan
+    fig.update_layout(
+        xaxis_tickangle=-45,
+        title_x=0.5,  # center title
+        yaxis=dict(showgrid=True),
+    )
 
     return fig
 
@@ -120,81 +111,56 @@ def value_count_top5_with_others(df, group_col, value_name="jumlah_proses"):
     return result_df
 
 
-def plot_upi_per_olahan(df, figsize=(12, 8)):
-    """
-    Membuat bar chart Jumlah UPI per Kecamatan.
+# def plot_upi_per_olahan(df):
+#     """
+#     Donut chart Proporsi UPI Berdasarkan Jenis Olahan (Plotly version)
+#     """
 
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        DataFrame asli
-    figsize : tuple, optional
-        Ukuran figure (default: (12, 8))
+#     # Hitung jumlah per jenis_proses
+#     df_olahan = (
+#         df
+#         .groupby("jenis_proses")
+#         .size()
+#         .reset_index(name="jumlah_upi")
+#         .sort_values("jumlah_upi", ascending=False)
+#     )
 
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-    """
-    df_olahan = (
-        df.groupby("jenis_proses")
-        .value_counts()
-        # .reset_index(name="jumlah_upi")
-        .reset_index()
-        )
-    
-    # Urutkan dari terbesar
-    df_olahan = df_olahan.sort_values("jumlah_upi", ascending=False)
-    
-    # Ambil 5 terbesar
-    top5 = df_olahan.head(5)
-    
-    # Jumlahkan sisanya
-    others_sum = df_olahan.iloc[5:]["jumlah_upi"].sum()
-    
-    # Jika ada kategori di luar top 5
-    if others_sum > 0:
-        others_row = pd.DataFrame({
-            "jenis_proses": ["Lain-lain"],
-            "jumlah_upi": [others_sum]
-        })
-        df_olahan = pd.concat([top5, others_row], ignore_index=True)
-    else:
-        df_olahan = top5
+#     # Ambil top 5
+#     top5 = df_olahan.head(5)
 
-    fig, ax = plt.subplots(figsize=figsize)
+#     # Hitung sisanya
+#     others_sum = df_olahan.iloc[5:]["jumlah_upi"].sum()
 
-    wedges, texts, autotexts = ax.pie(
-        df_olahan["jumlah_upi"],
-        autopct="%1.1f%%",
-        startangle=90,
-        pctdistance=0.85
-    )
-    
-    # Lubang tengah (donut)
-    centre_circle = plt.Circle((0, 0), 0.60, fc="white")
-    ax.add_artist(centre_circle)
-    
-    
-    
-    # Legend
-    labels = [
-        f"{j} ({v})"
-        for j, v in zip(df_olahan["jenis_proses"], df_olahan["jumlah_upi"])
-    ]
-    
-    ax.legend(
-        wedges,
-        labels,
-        title="Jenis Olahan",
-        loc="center left",
-        bbox_to_anchor=(1, 0.5)
-    )
-    fig.suptitle("Proporsi Unit Pengolahan Ikan (UPI) Berdasarkan Jenis Olahan", fontsize=30)
-    ax.axis("equal")  # memastikan lingkaran bulat
-    plt.tight_layout()
-    
+#     if others_sum > 0:
+#         others_row = pd.DataFrame({
+#             "jenis_proses": ["Lain-lain"],
+#             "jumlah_upi": [others_sum]
+#         })
+#         df_final = pd.concat([top5, others_row], ignore_index=True)
+#     else:
+#         df_final = top5
 
-    return fig
+#     # Buat donut chart
+#     fig = px.pie(
+#         df_final,
+#         names="jenis_proses",
+#         values="jumlah_upi",
+#         title="Proporsi Unit Pengolahan Ikan (UPI) Berdasarkan Jenis Olahan",
+#         hole=0.6  # <- ini bikin donut
+#     )
+
+#     # Styling tambahan
+#     fig.update_traces(
+#         textinfo="percent+label",
+#         hovertemplate="<b>%{label}</b><br>Jumlah: %{value}<br>Persentase: %{percent}"
+#     )
+
+#     fig.update_layout(
+#         title_x=0.5,
+#         legend_title="Jenis Olahan"
+#     )
+
+#     return fig
 
 def plot_upi_jenis_proses_jenis_ikan_catplot(df, figsize=(12, 8)):
     """
@@ -220,31 +186,28 @@ def plot_upi_jenis_proses_jenis_ikan_catplot(df, figsize=(12, 8)):
         .reset_index(name="jumlah_upi")
     )
 
-    g = sns.catplot(
-        data=df_grouped,
-        kind="bar",
-        x="jenis_proses",
-        y="jumlah_upi",
-        hue="jenis_ikan",
-        height=figsize[1] / 2,
-        aspect=figsize[0] / figsize[1]
+    fig = px.bar(
+        df_grouped,
+        y="jenis_proses",          # <- pindah ke Y
+        x="jumlah_upi",
+        color="jenis_ikan",
+        barmode="stack",
+        orientation="h",          # <- horizontal
+        title="Jumlah UPI Berdasarkan Jenis Proses dan Jenis Ikan",
+        labels={
+            "jenis_proses": "Jenis Proses",
+            "jumlah_upi": "Jumlah UPI",
+            "jenis_ikan": "Jenis Ikan"
+        }
     )
 
-    g.set_axis_labels("Jenis Proses", "Jumlah UPI")
-    g.fig.suptitle("Jumlah UPI Berdasarkan Jenis Proses dan Jenis Ikan", fontsize=12)
+    fig.update_layout(
+        title_x=0.5,
+        legend_title="Jenis Ikan",
+        height=600
+    )
 
-    # Rotasi label x
-    for ax in g.axes.flat:
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
-        ax.grid(axis="y", linestyle="--", alpha=0.5)
-        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-        
-    if g._legend is not None:
-        g._legend.set_title("Jenis Ikan")
-
-    # g._legend.set_title("Jenis Ikan")
-
-    return g.fig
+    return fig
 
 def handle_multiselect_all(selected, default_label, full_list):
     # Jika default + pilihan lain → hapus default
@@ -291,18 +254,25 @@ def donut_plot_kategori(
     kategori_urutan,
     label_tampil,
     judul,
-    # label_value=None,
-    figsize=(6, 6)
 ):
     """
-    Donut plot kategori (aman jika data kosong).
+    Donut plot kategori (Plotly version, aman jika data kosong).
     """
 
     # Jika dataframe kosong
     if df.empty:
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
-        ax.axis("off")
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Tidak ada data",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font=dict(size=16)
+        )
+        fig.update_layout(
+            title=judul,
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False)
+        )
         return fig
 
     counts = (
@@ -310,112 +280,133 @@ def donut_plot_kategori(
         .value_counts()
         .reindex(kategori_urutan, fill_value=0)
     )
-    # if label_value == None:
-    #     values = counts.values.astype(int)
-    # else:
-    #     values = label_value
+
     values = counts.values.astype(int)
+    labels = label_tampil
+
     # Jika total 0
     if values.sum() == 0:
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
-        ax.axis("off")
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Tidak ada data",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font=dict(size=16)
+        )
+        fig.update_layout(
+            title=judul,
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False)
+        )
         return fig
 
-    fig, ax = plt.subplots(figsize=figsize)
-    # if label_value == None:
-    #     ax_pie_label = values
-    ax.pie(
-        values,
-        labels=None,
-        autopct="%1.1f%%",
-        pctdistance=0.75,
-        startangle=90,
-        wedgeprops={"width": 0.4}
-    )
-
-    ax.axis("equal")
-    ax.set_title(judul)
-
     total = int(values.sum())
-    ax.text(
-        0, 0,
-        f"Total\n{total}",
-        ha="center", va="center",
-        fontsize=12, weight="bold"
+
+    fig = go.Figure(
+        data=[
+            go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.5,  # donut
+                textinfo="percent",
+                hovertemplate="<b>%{label}</b><br>Jumlah: %{value}<br>Persentase: %{percent}"
+            )
+        ]
     )
 
-    ax.legend(
-        label_tampil,
-        title="Kategori",
-        loc="center left",
-        bbox_to_anchor=(1, 0.5)
+    # Tambahkan total di tengah
+    fig.add_annotation(
+        text=f"<b>Total<br>{total}</b>",
+        showarrow=False,
+        font=dict(size=16)
+    )
+
+    fig.update_layout(
+        title=judul,
+        title_x=0,
+        legend_title="Kategori",
+        # height=figsize[1] * 100,
+        # width=figsize[0] * 100
     )
 
     return fig
 
 def donut_plot_kategori_agregat(
     df,
-    column_kategori,
+    # column_kategori,
     column_value,
     label_tampil,
     judul,
     figsize=(6, 6)
 ):
     """
-    Donut plot untuk dataframe yang sudah berbentuk agregasi.
-
-    df : DataFrame
-        Contoh kolom: [column_kategori, column_value]
-    column_kategori : str
-        Nama kolom kategori (misal: 'jenis_proses')
-    column_value : str
-        Nama kolom nilai (misal: 'jumlah_upi')
+    Donut plot untuk dataframe yang sudah berbentuk agregasi (Plotly version).
     """
 
     # Jika dataframe kosong
     if df.empty:
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
-        ax.axis("off")
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Tidak ada data",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font_size=16
+        )
+        fig.update_layout(
+            title=judul,
+            xaxis_visible=False,
+            yaxis_visible=False
+        )
         return fig
 
     values = df[column_value].astype(int).values
 
     # Jika total 0
     if values.sum() == 0:
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
-        ax.axis("off")
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Tidak ada data",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font_size=16
+        )
+        fig.update_layout(
+            title=judul,
+            xaxis_visible=False,
+            yaxis_visible=False
+        )
         return fig
 
-    fig, ax = plt.subplots(figsize=figsize)
+    # Gunakan label_tampil untuk legend
+    df_plot = df.copy()
+    df_plot["Kategori"] = label_tampil
 
-    ax.pie(
-        values,
-        labels=None,
-        autopct="%1.1f%%",
-        pctdistance=0.75,
-        startangle=90,
-        wedgeprops={"width": 0.4}
+    fig = px.pie(
+        df_plot,
+        names="Kategori",
+        values=column_value,
+        hole=0.6,
+        title=judul
     )
 
-    ax.axis("equal")
-    ax.set_title(judul)
+    fig.update_traces(
+        textinfo="percent",
+        hovertemplate="<b>%{label}</b><br>Jumlah: %{value}<br>Persentase: %{percent}"
+    )
 
     total = int(values.sum())
-    ax.text(
-        0, 0,
-        f"Total\n{total}",
-        ha="center", va="center",
-        fontsize=12, weight="bold"
+
+    fig.add_annotation(
+        text=f"<b>Total<br>{total}</b>",
+        showarrow=False,
+        font_size=16
     )
 
-    ax.legend(
-        label_tampil,
-        title="Kategori",
-        loc="center left",
-        bbox_to_anchor=(1, 0.5)
+    fig.update_layout(
+        title_x=0.1,
+        legend_title="Kategori",
+        height=figsize[0] * 100,
+        width=figsize[1] * 100
     )
 
     return fig
@@ -434,13 +425,23 @@ def donut_plot_binary(
     Aman jika dataframe kosong.
     """
 
-    # Jika dataframe kosong
+    # =========================
+    # DATA KOSONG
+    # =========================
     if df.empty:
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
-        ax.axis("off")
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Tidak ada data",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font_size=16
+        )
+        fig.update_layout(title=judul)
         return fig
 
+    # =========================
+    # HITUNG KONDISI
+    # =========================
     kondisi_true = (
         df[kolom].notna() &
         (df[kolom].astype(str).str.strip() != "")
@@ -453,39 +454,61 @@ def donut_plot_binary(
 
     # Jika semua nol
     if sum(values) == 0:
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center", fontsize=14)
-        ax.axis("off")
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Tidak ada data",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font_size=16
+        )
+        fig.update_layout(title=judul)
         return fig
 
     labels = [label_true, label_false]
-
-    fig, ax = plt.subplots(figsize=figsize)
-
-    ax.pie(
-        values,
-        labels=None,
-        autopct="%1.1f%%",
-        pctdistance=0.75,
-        startangle=90,
-        wedgeprops=dict(width=0.4)
-    )
-    
-    ax.legend(
-        labels,
-        title="Kategori",
-        loc="center left",
-        bbox_to_anchor=(1, 0.5)
-    )
-       
-
-    ax.axis("equal")
-    ax.set_title(judul)
-
     total = sum(values)
-    ax.text(0, 0, f"Total\n{total}",
-            ha="center", va="center",
-            fontsize=12, weight="bold")
+
+    # =========================
+    # WARNA
+    # =========================
+    colors = ["#2E86C1", "#E74C3C"]  # biru & merah elegan
+
+    # =========================
+    # DONUT PLOT
+    # =========================
+    fig = go.Figure()
+
+    fig.add_trace(go.Pie(
+        labels=labels,
+        values=values,
+        hole=0.6,
+        marker=dict(colors=colors),
+        textinfo="percent",
+        hovertemplate=
+            "<b>%{label}</b><br>" +
+            "Jumlah: %{value}<br>" +
+            "Persentase: %{percent}<extra></extra>"
+    ))
+
+    # =========================
+    # TOTAL DI TENGAH
+    # =========================
+    fig.add_annotation(
+        text=f"<b>Total<br>{total}</b>",
+        showarrow=False,
+        font_size=16
+    )
+
+    # =========================
+    # LAYOUT
+    # =========================
+    fig.update_layout(
+        title=judul,
+        title_x=0.5,
+        legend_title="Kategori",
+        height=figsize[0] * 100,
+        width=figsize[1] * 100,
+        template="plotly_white"
+    )
 
     return fig
 
@@ -562,84 +585,140 @@ def plot_tren_produksi_total(
     watermark_text="Data Dummy"
 ):
     """
-    Membuat line plot time-series dari data produksi.
-
-    Parameters
-    ----------
-    df : DataFrame
-        Dataframe yang berisi data time series.
-
-    kolom_tanggal : str
-        Nama kolom tanggal atau "index".
-
-    kolom_nilai : str
-        Nama kolom berisi nilai numerik (y-axis).
-
-    kolom_grup : str, optional
-        Kolom pengelompokan (misal: 'NAMA UPI').
-
-    judul : str
-        Judul grafik.
-
-    figsize : tuple
-        Ukuran figure matplotlib.
-
-    tampil_legend : bool
-        Menampilkan legend atau tidak.
-
-    watermark_text : str
-        Teks watermark pada grafik.
+    Line plot time-series menggunakan Plotly (tanpa ubah cara pemanggilan).
     """
 
     # Jika dataframe kosong
     if df.empty:
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.text(0.5, 0.5, "Tidak ada data", ha="center", va="center")
-        ax.axis("off")
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Tidak ada data",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font_size=16
+        )
+        fig.update_layout(title=judul)
         return fig
 
-    fig, ax = plt.subplots(figsize=figsize)
+    df_plot = df.copy()
 
-    # Tentukan sumbu X
+    # =========================
+    # TENTUKAN KOLOM X
+    # =========================
     if kolom_tanggal == "index":
-        x_data = df.index
+        df_plot["_x_axis"] = df_plot.index
+        x_col = "_x_axis"
     else:
-        x_data = df[kolom_tanggal]
+        x_col = kolom_tanggal
 
-    # Plot
-    sns.lineplot(
-        data=df,
-        x=x_data,
-        y=kolom_nilai,
-        hue=kolom_grup,
-        legend=tampil_legend,
-        ax=ax
+    fig = go.Figure()
+
+    # =========================
+    # TANPA GROUP
+    # =========================
+    if not kolom_grup:
+
+        agg = (
+            df_plot
+            .groupby(x_col)[kolom_nilai]
+            .agg(["mean", "min", "max"])
+            .reset_index()
+            .sort_values(x_col)
+        )
+
+        x_vals = agg[x_col]
+        y_min = agg["min"]
+        y_max = agg["max"]
+        y_mean = agg["mean"]
+
+        # AREA RANGE (polygon stabil)
+        fig.add_trace(go.Scatter(
+            x=list(x_vals) + list(x_vals[::-1]),
+            y=list(y_max) + list(y_min[::-1]),
+            fill="toself",
+            fillcolor="rgba(0,100,200,0.2)",
+            line=dict(color="rgba(255,255,255,0)"),
+            hoverinfo="skip",
+            name="Range (Min–Max)"
+        ))
+
+        # GARIS MEAN
+        fig.add_trace(go.Scatter(
+            x=x_vals,
+            y=y_mean,
+            mode="lines+markers",
+            name="Rata-rata"
+        ))
+
+    # =========================
+    # DENGAN GROUP
+    # =========================
+    else:
+
+        groups = df_plot[kolom_grup].unique()
+
+        for g in groups:
+
+            df_g = df_plot[df_plot[kolom_grup] == g]
+
+            agg = (
+                df_g
+                .groupby(x_col)[kolom_nilai]
+                .agg(["mean", "min", "max"])
+                .reset_index()
+                .sort_values(x_col)
+            )
+
+            x_vals = agg[x_col]
+            y_min = agg["min"]
+            y_max = agg["max"]
+            y_mean = agg["mean"]
+
+            # AREA RANGE
+            fig.add_trace(go.Scatter(
+                x=list(x_vals) + list(x_vals[::-1]),
+                y=list(y_max) + list(y_min[::-1]),
+                fill="toself",
+                fillcolor="rgba(0,100,200,0.15)",
+                line=dict(color="rgba(255,255,255,0)"),
+                hoverinfo="skip",
+                showlegend=False
+            ))
+
+            # GARIS MEAN
+            fig.add_trace(go.Scatter(
+                x=x_vals,
+                y=y_mean,
+                mode="lines+markers",
+                name=str(g)
+            ))
+
+    # =========================
+    # LAYOUT
+    # =========================
+    fig.update_layout(
+        title=judul,
+        title_x=0.5,
+        height=figsize[1] * 100,
+        width=figsize[0] * 100,
+        showlegend=tampil_legend,
+        xaxis_title="Tanggal",
+        yaxis_title=kolom_nilai,
+        template="plotly_white"
     )
 
-    # Judul & Label
-    ax.set_title(judul)
-    ax.set_xlabel("Tanggal")
-    ax.set_ylabel(kolom_nilai)
-
-    # Grid
-    ax.grid(
-        True,
-        linestyle="--",
-        alpha=0.4
-    )
-
-    # Watermark
-    ax.text(
-        0.5, 0.5,
-        watermark_text,
-        transform=ax.transAxes,
-        fontsize=40,
-        color="gray",
-        alpha=0.25,
-        ha="center",
-        va="center",
-        rotation=30,
-        weight="bold"
+    # =========================
+    # WATERMARK
+    # =========================
+    fig.add_annotation(
+        text=watermark_text,
+        x=0.5,
+        y=0.5,
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+        font=dict(size=60, color="rgba(150,150,150,0.2)"),
+        textangle=30
     )
 
     return fig
@@ -655,83 +734,174 @@ def plot_line_chart(
     tampil_legend=False,
     watermark_text="Data Dummy"
 ):
-    """
-    Membuat line plot time-series dari data produksi.
+    # =========================
+    # PARAMETER TRANSPARANSI AREA
+    # =========================
+    area_opacity = 0.25  # <-- Ubah di sini (0.1 - 0.5)
 
-    Parameters
-    ----------
-    df : DataFrame
-        Dataframe yang berisi data time series.
-
-    kolom_tanggal : str
-        Nama kolom tanggal atau "index".
-
-    kolom_nilai : str
-        Nama kolom berisi nilai numerik (y-axis).
-
-    kolom_grup : str, optional
-        Kolom pengelompokan (misal: 'NAMA UPI').
-
-    judul : str
-        Judul grafik.
-
-    figsize : tuple
-        Ukuran figure matplotlib.
-
-    tampil_legend : bool
-        Menampilkan legend atau tidak.
-
-    watermark_text : str
-        Teks watermark pada grafik.
-    """
-
-    fig, ax = plt.subplots(figsize=figsize)
-
-
-
-    # Plot
-    sns.lineplot(
-        data=data,
-        x=x_axis,
-        y=y_axis,
-        hue=kolom_grup,
-        legend=tampil_legend,
-        ax=ax
-    )
-
-    # Judul & Label
-    ax.set_title(judul)
-    ax.set_xlabel("Tanggal")
-    ax.set_ylabel(y_label)
-
-    # Grid
-    ax.grid(
-        True,
-        linestyle="--",
-        alpha=0.4
-    )
-
-    # Watermark
-    ax.text(
-        0.5, 0.5,
-        watermark_text,
-        transform=ax.transAxes,
-        fontsize=40,
-        color="gray",
-        alpha=0.25,
-        ha="center",
-        va="center",
-        rotation=30,
-        weight="bold"
-    )
-    if tampil_legend:
-        ax.legend(
-            title="Keterangan",
-            bbox_to_anchor=(1.02, 1),
-            loc="upper left",
-            borderaxespad=0
+    # =========================
+    # DATA KOSONG
+    # =========================
+    if data.empty:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Tidak ada data",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font_size=16
         )
+        fig.update_layout(title=judul)
+        return fig
+
+    df_plot = data.copy()
+
+    # =========================
+    # HANDLE X AXIS
+    # =========================
+    if isinstance(x_axis, (pd.Index, pd.Series)):
+        df_plot["_x_axis"] = x_axis
     else:
-        pass
+        df_plot["_x_axis"] = x_axis
+
+    x_col = "_x_axis"
+
+    fig = go.Figure()
+
+    colors = px.colors.qualitative.Plotly
+
+    # =========================
+    # TANPA GROUP
+    # =========================
+    if not kolom_grup:
+
+        agg = (
+            df_plot
+            .groupby(x_col)[y_axis]
+            .agg(["mean", "min", "max"])
+            .reset_index()
+            .sort_values(x_col)
+        )
+
+        x_vals = agg[x_col]
+        y_min = agg["min"]
+        y_max = agg["max"]
+        y_mean = agg["mean"]
+
+        color_line = colors[0]
+        r, g, b = hex_to_rgb(color_line)
+        color_fill = f"rgba({r},{g},{b},{area_opacity})"
+
+        # AREA RANGE
+        fig.add_trace(go.Scatter(
+            x=list(x_vals) + list(x_vals[::-1]),
+            y=list(y_max) + list(y_min[::-1]),
+            fill="toself",
+            fillcolor=color_fill,
+            line=dict(color="rgba(255,255,255,0)"),
+            hoverinfo="skip",
+            showlegend=False
+        ))
+
+        # GARIS MEAN
+        fig.add_trace(go.Scatter(
+            x=x_vals,
+            y=y_mean,
+            mode="lines+markers",
+            name="Rata-rata",
+            line=dict(color=color_line, width=3),
+            customdata=list(zip(y_min, y_max)),
+            hovertemplate=
+                "<b>Tanggal:</b> %{x}<br>" +
+                "<b>Mean:</b> %{y}<br>" +
+                "<b>Min:</b> %{customdata[0]}<br>" +
+                "<b>Max:</b> %{customdata[1]}<extra></extra>"
+        ))
+
+    # =========================
+    # DENGAN GROUP
+    # =========================
+    else:
+
+        # Pastikan kategori dianggap string
+        df_plot[kolom_grup] = df_plot[kolom_grup].astype(str)
+
+        groups = df_plot[kolom_grup].dropna().unique()
+
+        for i, g in enumerate(groups):
+
+            df_g = df_plot[df_plot[kolom_grup] == g]
+
+            agg = (
+                df_g
+                .groupby(x_col)[y_axis]
+                .agg(["mean", "min", "max"])
+                .reset_index()
+                .sort_values(x_col)
+            )
+
+            x_vals = agg[x_col]
+            y_min = agg["min"]
+            y_max = agg["max"]
+            y_mean = agg["mean"]
+
+            color_line = colors[i % len(colors)]
+            r, g_color, b = hex_to_rgb(color_line)
+            color_fill = f"rgba({r},{g_color},{b},{area_opacity})"
+
+            # AREA
+            fig.add_trace(go.Scatter(
+                x=list(x_vals) + list(x_vals[::-1]),
+                y=list(y_max) + list(y_min[::-1]),
+                fill="toself",
+                fillcolor=color_fill,
+                line=dict(color="rgba(255,255,255,0)"),
+                hoverinfo="skip",
+                showlegend=False
+            ))
+
+            # GARIS
+            fig.add_trace(go.Scatter(
+                x=x_vals,
+                y=y_mean,
+                mode="lines+markers",
+                name=g,
+                line=dict(color=color_line, width=3),
+                customdata=list(zip(y_min, y_max)),
+                hovertemplate=
+                    "<b>Group:</b> %{fullData.name}<br>" +
+                    "<b>Tanggal:</b> %{x}<br>" +
+                    "<b>Mean:</b> %{y}<br>" +
+                    "<b>Min:</b> %{customdata[0]}<br>" +
+                    "<b>Max:</b> %{customdata[1]}<extra></extra>"
+            ))
+
+    # =========================
+    # LAYOUT
+    # =========================
+    fig.update_layout(
+        title=judul,
+        title_x=0.5,
+        height=figsize[1] * 100,
+        width=figsize[0] * 100,
+        showlegend=tampil_legend,
+        xaxis_title="Tanggal",
+        yaxis_title=y_label if y_label else y_axis,
+        template="plotly_white"
+    )
+
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(0,0,0,0.1)")
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(0,0,0,0.1)")
+
+    # WATERMARK
+    fig.add_annotation(
+        text=watermark_text,
+        x=0.5,
+        y=0.5,
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+        font=dict(size=60, color="rgba(150,150,150,0.2)"),
+        textangle=30
+    )
 
     return fig
