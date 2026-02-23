@@ -1,7 +1,7 @@
 # import numpy as np
 # import pandas as pd
 # import seaborn as sns
-# import streamlit as st
+import streamlit as st
 import os
 import base64
 import time
