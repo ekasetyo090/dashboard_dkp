@@ -150,7 +150,7 @@ Pastikan setiap widget Streamlit memiliki parameter `key` yang unik jika digunak
 - [ ] Integrasi database (MySQL/PostgreSQL)
 - [ ] Download filtered data (CSV/Excel)
 - [ ] Statistik deskriptif otomatis
-- [ ] Deployment ke Streamlit Cloud
+- [ ] Deployment ke local server yang lebih *advanced*
 - [ ] Role-based access (admin/user)
 
 ---
