@@ -136,279 +136,281 @@ df_clean['Jumlah Produksi Final'] = add_dynamic_noise(
 # ============================================================
 st.title("Dashboard Statistik PDSPKP", anchor=False)
 st.divider()
+tab1, tab2 = st.tabs(["POKLAHSAR", "UPI"])
+# tab poklahsar
 
-
-# ============================================================
-# METRICS
-# ============================================================
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric("Jumlah UPI", len(df))
-col2.metric("Jenis Olahan", df["jenis_proses"].nunique())
-col3.metric("Kecamatan", df["KECAMATAN"].nunique())
-col4.metric("Desa", df["DESA"].nunique())
-st.divider()
-
-
-
-
-# ============================================================
-# SIDE BAR
-# ============================================================
-# st.sidebar.header("Filter Data")
-with st.sidebar:
-    st.header("Filter Data")
-# =========================
-# JENIS PROSES
-# =========================
-    list_proses = sorted(df["jenis_proses"].dropna().unique())
-    opsi_proses = ["Semua Jenis Proses"] + list_proses
-    
-    pilih_proses = st.multiselect(
-        "Pilih Jenis Proses",
-        options=opsi_proses,
-        default=["Semua Jenis Proses"]
-    )
-    
-    # if "Semua Jenis Proses" in pilih_proses:
-    #     final_proses = list_proses
-    # else:
-    #     final_proses = pilih_proses
-    
-    final_jenis_proses = handle_multiselect_all(
-        selected=pilih_proses,
-        default_label="Semua Jenis Proses",
-        full_list=list_proses
-    )
-    df_clean_filtered = df_clean[(df_clean["jenis_proses"].isin(final_jenis_proses))].copy()
-    # df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['jenis_proses'].isin(final_jenis_proses)]
-# =========================
-# JENIS IKAN
-# =========================
-    list_ikan = sorted(df["jenis_ikan"].dropna().unique())
-    opsi_ikan = ["Semua Jenis Ikan"] + list_ikan
-    
-    pilih_ikan = st.sidebar.multiselect(
-        "Pilih Jenis Ikan",
-        options=opsi_ikan,
-        default=["Semua Jenis Ikan"]
-    )
-    final_jenis_ikan = handle_multiselect_all(
-        selected=pilih_ikan,
-        default_label="Semua Jenis Ikan",
-        full_list=list_ikan
-    )
-    df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['jenis_ikan'].isin(final_jenis_ikan)]
-# =========================
-# KECAMATAN
-# =========================
-    list_kecamatan = sorted(df["KECAMATAN"].dropna().unique())
-    opsi_kecamatan = ["Semua Kecamatan"] + list_kecamatan
-
-    pilih_kecamatan = st.multiselect(
-        "Pilih Kecamatan",
-        options=opsi_kecamatan,
-        default=["Semua Kecamatan"]
-    )
-    final_kecamatan = handle_multiselect_all(
-        selected=pilih_kecamatan,
-        default_label="Semua Kecamatan",
-        full_list=list_kecamatan
-    )
-    df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['KECAMATAN'].isin(final_kecamatan)]
-
-# =========================
-# DESA
-# =========================
-    list_desa = sorted(df_clean_filtered["DESA"].dropna().unique())
-    opsi_desa = ["Semua Desa"] + list_desa
-
-    pilih_desa = st.multiselect(
-        "Pilih Desa",
-        options=opsi_desa,
-        default=["Semua Desa"]
-    )
-    final_desa = handle_multiselect_all(
-        selected=pilih_desa,
-        default_label="Semua Desa",
-        full_list=list_desa
-    )
-    df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['DESA'].isin(final_desa)]
-
-# =========================
-# Kontak
-# =========================
-    options_kontak = ["Semuanya", "Memiliki Kontak", "Tidak Punya Kontak"]
-
-    kontak_conditions= {
-        "Memiliki Kontak": df_clean_filtered["NO TELP ENKRIP"].notna(),
-        "Tidak Punya Kontak": df_clean_filtered["NO TELP ENKRIP"].isna()
-    }
-    
-    kontak_filter_option = handle_segmented_filter(label='Filter Kontak', options=options_kontak)
-
-    
-    df_clean_filtered = helper_segmented_filter(
-        df_clean_filtered,
-        map_condition=kontak_conditions,
-        selection=kontak_filter_option
-    )
-
-
-# =========================
-# Bantuan
-# =========================
-    options_bantuan = ["Semuanya", "Sudah Menerima Bantuan", "Belum Menerima Bantuan"]
-    bantuan_conditions = {
-        "Sudah Menerima Bantuan": df_clean_filtered["PENERIMAAN BANTUAN"] == "sudah",
-        "Belum Menerima Bantuan": df_clean_filtered["PENERIMAAN BANTUAN"] == "belum"
-    }
-    bantuan_filter_option = handle_segmented_filter(label='Filter Bantuan', options=options_bantuan)
-    df_clean_filtered = helper_segmented_filter(
-        df_clean_filtered,
-        map_condition=bantuan_conditions,
-        selection=bantuan_filter_option
-    )
-# =========================
-# DKP IMAGE 
-# =========================
-    st.image(LOGO_DKP, width=200)
-
-
-with st.container():
-    fig_lineplot = plot_tren_produksi_total(
-        df=df_clean,
-        kolom_tanggal="index",
-        kolom_nilai="Jumlah Produksi Final",
-        judul="Tren Jumlah Produksi UPI",
-        watermark_text="DATA DUMMY",
-        # kolom_grup='KECAMATAN'
-    )
-
-    st.plotly_chart(fig_lineplot, use_container_width=True)
+with tab1:
     # ============================================================
-    # BAR CHART - JUMLAH UPI PER KECAMATAN
+    # METRICS
     # ============================================================
-    fig1 = plot_upi_per_kecamatan(df)
-    # fig2 = plot_upi_per_olahan(df)
-    df_count_top_5_jenis_olahan = value_count_top5_with_others(df, group_col="jenis_proses", value_name="jumlah_upi")
-    # df_count_top_5_jumlah_jenis_olahan_list = df_count_top_5_jenis_olahan["jumlah_upi"].tolist()
-    # df_count_top_5_jenis_olahan_list = df_count_top_5_jenis_olahan["jenis_proses"].tolist()
-    label_tampil_fig2 = [
-        f"{jenis} = {jumlah}"
-        for jumlah, jenis in zip(
-            df_count_top_5_jenis_olahan["jumlah_upi"].tolist(),
-            df_count_top_5_jenis_olahan["jenis_proses"].tolist()
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("Jumlah UPI", len(df))
+    col2.metric("Jenis Olahan", df["jenis_proses"].nunique())
+    col3.metric("Kecamatan", df["KECAMATAN"].nunique())
+    col4.metric("Desa", df["DESA"].nunique())
+    st.divider()
+
+
+
+
+    # ============================================================
+    # SIDE BAR
+    # ============================================================
+    # st.sidebar.header("Filter Data")
+    with st.sidebar:
+        st.header("Filter Data")
+    # =========================
+    # JENIS PROSES
+    # =========================
+        list_proses = sorted(df["jenis_proses"].dropna().unique())
+        opsi_proses = ["Semua Jenis Proses"] + list_proses
+        
+        pilih_proses = st.multiselect(
+            "Pilih Jenis Proses",
+            options=opsi_proses,
+            default=["Semua Jenis Proses"]
         )
-    ]
-    
-    fig2 = donut_plot_kategori_agregat(
-        df=df_count_top_5_jenis_olahan,
-        # column_kategori="jenis_proses",
-        column_value="jumlah_upi",
-        label_tampil=df_count_top_5_jenis_olahan["jenis_proses"].tolist(),
-        judul="Proporsi Jenis Proses UPI"
+        
+        # if "Semua Jenis Proses" in pilih_proses:
+        #     final_proses = list_proses
+        # else:
+        #     final_proses = pilih_proses
+        
+        final_jenis_proses = handle_multiselect_all(
+            selected=pilih_proses,
+            default_label="Semua Jenis Proses",
+            full_list=list_proses
+        )
+        df_clean_filtered = df_clean[(df_clean["jenis_proses"].isin(final_jenis_proses))].copy()
+        # df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['jenis_proses'].isin(final_jenis_proses)]
+    # =========================
+    # JENIS IKAN
+    # =========================
+        list_ikan = sorted(df["jenis_ikan"].dropna().unique())
+        opsi_ikan = ["Semua Jenis Ikan"] + list_ikan
+        
+        pilih_ikan = st.sidebar.multiselect(
+            "Pilih Jenis Ikan",
+            options=opsi_ikan,
+            default=["Semua Jenis Ikan"]
+        )
+        final_jenis_ikan = handle_multiselect_all(
+            selected=pilih_ikan,
+            default_label="Semua Jenis Ikan",
+            full_list=list_ikan
+        )
+        df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['jenis_ikan'].isin(final_jenis_ikan)]
+    # =========================
+    # KECAMATAN
+    # =========================
+        list_kecamatan = sorted(df["KECAMATAN"].dropna().unique())
+        opsi_kecamatan = ["Semua Kecamatan"] + list_kecamatan
+
+        pilih_kecamatan = st.multiselect(
+            "Pilih Kecamatan",
+            options=opsi_kecamatan,
+            default=["Semua Kecamatan"]
+        )
+        final_kecamatan = handle_multiselect_all(
+            selected=pilih_kecamatan,
+            default_label="Semua Kecamatan",
+            full_list=list_kecamatan
+        )
+        df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['KECAMATAN'].isin(final_kecamatan)]
+
+    # =========================
+    # DESA
+    # =========================
+        list_desa = sorted(df_clean_filtered["DESA"].dropna().unique())
+        opsi_desa = ["Semua Desa"] + list_desa
+
+        pilih_desa = st.multiselect(
+            "Pilih Desa",
+            options=opsi_desa,
+            default=["Semua Desa"]
+        )
+        final_desa = handle_multiselect_all(
+            selected=pilih_desa,
+            default_label="Semua Desa",
+            full_list=list_desa
+        )
+        df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['DESA'].isin(final_desa)]
+
+    # =========================
+    # Kontak
+    # =========================
+        options_kontak = ["Semuanya", "Memiliki Kontak", "Tidak Punya Kontak"]
+
+        kontak_conditions= {
+            "Memiliki Kontak": df_clean_filtered["NO TELP ENKRIP"].notna(),
+            "Tidak Punya Kontak": df_clean_filtered["NO TELP ENKRIP"].isna()
+        }
+        
+        kontak_filter_option = handle_segmented_filter(label='Filter Kontak', options=options_kontak)
+
+        
+        df_clean_filtered = helper_segmented_filter(
+            df_clean_filtered,
+            map_condition=kontak_conditions,
+            selection=kontak_filter_option
+        )
+
+
+    # =========================
+    # Bantuan
+    # =========================
+        options_bantuan = ["Semuanya", "Sudah Menerima Bantuan", "Belum Menerima Bantuan"]
+        bantuan_conditions = {
+            "Sudah Menerima Bantuan": df_clean_filtered["PENERIMAAN BANTUAN"] == "sudah",
+            "Belum Menerima Bantuan": df_clean_filtered["PENERIMAAN BANTUAN"] == "belum"
+        }
+        bantuan_filter_option = handle_segmented_filter(label='Filter Bantuan', options=options_bantuan)
+        df_clean_filtered = helper_segmented_filter(
+            df_clean_filtered,
+            map_condition=bantuan_conditions,
+            selection=bantuan_filter_option
+        )
+    # =========================
+    # DKP IMAGE 
+    # =========================
+        st.image(LOGO_DKP, width=200)
+
+
+    with st.container():
+        fig_lineplot = plot_tren_produksi_total(
+            df=df_clean,
+            kolom_tanggal="index",
+            kolom_nilai="Jumlah Produksi Final",
+            judul="Tren Jumlah Produksi UPI",
+            watermark_text="DATA DUMMY",
+            # kolom_grup='KECAMATAN'
+        )
+
+        st.plotly_chart(fig_lineplot, use_container_width=True)
+        # ============================================================
+        # BAR CHART - JUMLAH UPI PER KECAMATAN
+        # ============================================================
+        fig1 = plot_upi_per_kecamatan(df)
+        # fig2 = plot_upi_per_olahan(df)
+        df_count_top_5_jenis_olahan = value_count_top5_with_others(df, group_col="jenis_proses", value_name="jumlah_upi")
+        # df_count_top_5_jumlah_jenis_olahan_list = df_count_top_5_jenis_olahan["jumlah_upi"].tolist()
+        # df_count_top_5_jenis_olahan_list = df_count_top_5_jenis_olahan["jenis_proses"].tolist()
+        label_tampil_fig2 = [
+            f"{jenis} = {jumlah}"
+            for jumlah, jenis in zip(
+                df_count_top_5_jenis_olahan["jumlah_upi"].tolist(),
+                df_count_top_5_jenis_olahan["jenis_proses"].tolist()
+            )
+        ]
+        
+        fig2 = donut_plot_kategori_agregat(
+            df=df_count_top_5_jenis_olahan,
+            # column_kategori="jenis_proses",
+            column_value="jumlah_upi",
+            label_tampil=df_count_top_5_jenis_olahan["jenis_proses"].tolist(),
+            judul="Proporsi Jenis Proses UPI"
+        )
+
+        
+        col1, col2 = st.columns([2, 1])   # rasio seimbang
+        with col1:
+            st.plotly_chart(fig1, use_container_width=True)
+        with col2:
+            st.plotly_chart(fig2, use_container_width=True)
+        
+    # ============================================================
+    # BODY SEC 2
+    # ============================================================
+    st.divider()
+    st.subheader("Data :blue[Terfilter]")
+
+
+    # ============================================================
+    # DATA TABLE
+    # ============================================================
+    # df_filtered_1 = df[
+    #     (df["KECAMATAN"].isin(final_kecamatan)) &
+    #     (df["DESA"].isin(final_desa)) &
+    #     (df["jenis_proses"].isin(final_proses)) &
+    #     (df["jenis_ikan"].isin(final_ikan))
+    # ]
+    # st.divider()
+    fig3 = plot_upi_jenis_proses_jenis_ikan_catplot(df_clean_filtered)
+    # fig4 = plot_persentase_upi_memiliki_kontak(df_filtered_1)
+    fig4 = donut_plot_binary(
+        df_clean_filtered,
+        kolom="NO TELP ENKRIP",
+        # judul="",
+        label_true="Memiliki Kontak",
+        label_false="Tidak Memiliki Kontak",
+        judul="Persentase UPI yang Memiliki Kontak"
     )
 
-    
-    col1, col2 = st.columns([2, 1])   # rasio seimbang
-    with col1:
-        st.plotly_chart(fig1, use_container_width=True)
-    with col2:
-        st.plotly_chart(fig2, use_container_width=True)
-    
-# ============================================================
-# BODY SEC 2
-# ============================================================
-st.divider()
-st.subheader("Data :blue[Terfilter]")
+    fig5 = donut_plot_kategori(
+        df_clean_filtered,
+        "PENERIMAAN BANTUAN",
+        kategori_urutan=["sudah", "belum"],
+        label_tampil=["Sudah Menerima Bantuan", "Belum Menerima Bantuan"],
+        judul="Persentase Penerimaan Bantuan"
+    )
 
-
-# ============================================================
-# DATA TABLE
-# ============================================================
-# df_filtered_1 = df[
-#     (df["KECAMATAN"].isin(final_kecamatan)) &
-#     (df["DESA"].isin(final_desa)) &
-#     (df["jenis_proses"].isin(final_proses)) &
-#     (df["jenis_ikan"].isin(final_ikan))
-# ]
-# st.divider()
-fig3 = plot_upi_jenis_proses_jenis_ikan_catplot(df_clean_filtered)
-# fig4 = plot_persentase_upi_memiliki_kontak(df_filtered_1)
-fig4 = donut_plot_binary(
-    df_clean_filtered,
-    kolom="NO TELP ENKRIP",
-    # judul="",
-    label_true="Memiliki Kontak",
-    label_false="Tidak Memiliki Kontak",
-    judul="Persentase UPI yang Memiliki Kontak"
-)
-
-fig5 = donut_plot_kategori(
-    df_clean_filtered,
-    "PENERIMAAN BANTUAN",
-    kategori_urutan=["sudah", "belum"],
-    label_tampil=["Sudah Menerima Bantuan", "Belum Menerima Bantuan"],
-    judul="Persentase Penerimaan Bantuan"
-)
-
-with st.container():
-    col1,col2 = st.columns([1,1])
-    with col1:
-        st.plotly_chart(fig3, use_container_width=True)
-    with col2:
-        with st.container():
-            st.plotly_chart(fig4, use_container_width=True)
-            
-# st.write(df_filtered_1['PENERIMAAN BANTUAN'].value_counts())
-# st.divider()
-with st.container():
-    
-    col1,col2 = st.columns([2,1])
-    with col1:
-        col11,col21 = st.columns([4,1])
+    with st.container():
+        col1,col2 = st.columns([1,1])
+        with col1:
+            st.plotly_chart(fig3, use_container_width=True)
+        with col2:
+            with st.container():
+                st.plotly_chart(fig4, use_container_width=True)
+                
+    # st.write(df_filtered_1['PENERIMAAN BANTUAN'].value_counts())
+    # st.divider()
+    with st.container():
         
-        with col21:
+        col1,col2 = st.columns([2,1])
+        with col1:
+            col11,col21 = st.columns([4,1])
             
-            lineplot_filtered_hue = st.selectbox(
-                "Kelompokkan Berdasarkan",
-                ("Status Bantuan", "Jenis Olahan", "Jenis Ikan Yang Diolah",'Kecamatan','Desa','Tidak Ada'),
-                placeholder="Pilih Metode"
-                # index=5
-            )
+            with col21:
+                
+                lineplot_filtered_hue = st.selectbox(
+                    "Kelompokkan Berdasarkan",
+                    ("Status Bantuan", "Jenis Olahan", "Jenis Ikan Yang Diolah",'Kecamatan','Desa','Tidak Ada'),
+                    placeholder="Pilih Metode"
+                    # index=5
+                )
 
-        with col11:
+            with col11:
+                
+                lineplot_filtered_hue_map = {
+                    "Status Bantuan":'PENERIMAAN BANTUAN', 
+                    "Jenis Olahan":'jenis_proses', 
+                    "Jenis Ikan Yang Diolah":'jenis_ikan',
+                    'Tidak Ada':None,
+                    'Kecamatan':'KECAMATAN',
+                    'Desa':'DESA'
+                }
+                fig6 = plot_line_chart(
+                    df_clean_filtered,
+                    x_axis=df_clean_filtered.index,
+                    y_axis='Jumlah Produksi Final',
+                    y_label='Jumlah Produksi',
+                    kolom_grup=lineplot_filtered_hue_map.get(lineplot_filtered_hue),
+                    judul='Trend Produksi Terfilter',
+                    figsize=(10, 5),
+                    tampil_legend=True,
+                    watermark_text="Data Dummy",
+                    # tampil_legend=True
+                )
+                st.plotly_chart(fig6, use_container_width=True)
+
+        with col2:
+            st.plotly_chart(fig5, use_container_width=True)
+            # hue_fig5 = ["North", "East", "South", "West"]
+            # selection_hue_fig5 = st.segmented_control(
+            #     "Hue", hue_fig5, selection_mode="single"
+            # )
             
-            lineplot_filtered_hue_map = {
-                "Status Bantuan":'PENERIMAAN BANTUAN', 
-                "Jenis Olahan":'jenis_proses', 
-                "Jenis Ikan Yang Diolah":'jenis_ikan',
-                'Tidak Ada':None,
-                'Kecamatan':'KECAMATAN',
-                'Desa':'DESA'
-            }
-            fig6 = plot_line_chart(
-                df_clean_filtered,
-                x_axis=df_clean_filtered.index,
-                y_axis='Jumlah Produksi Final',
-                y_label='Jumlah Produksi',
-                kolom_grup=lineplot_filtered_hue_map.get(lineplot_filtered_hue),
-                judul='Trend Produksi Terfilter',
-                figsize=(10, 5),
-                tampil_legend=True,
-                watermark_text="Data Dummy",
-                # tampil_legend=True
-            )
-            st.plotly_chart(fig6, use_container_width=True)
-
-    with col2:
-        st.plotly_chart(fig5, use_container_width=True)
-        # hue_fig5 = ["North", "East", "South", "West"]
-        # selection_hue_fig5 = st.segmented_control(
-        #     "Hue", hue_fig5, selection_mode="single"
-        # )
-        
         
     
     
