@@ -19,8 +19,8 @@ from LIB.charts import (
     plot_upi_per_kecamatan,plot_upi_jenis_proses_jenis_ikan_catplot,
     handle_multiselect_all,helper_segmented_filter,
     donut_plot_kategori,donut_plot_binary,value_count_top5_with_others,
-    donut_plot_kategori_agregat,parse_produksi,add_dynamic_noise,plot_tren_produksi_total,
-    handle_segmented_filter,plot_line_chart
+    donut_plot_kategori_agregat,parse_produksi,add_dynamic_noise,plot_tren_produksi_total,plot_bedah_upi_stack,
+    handle_segmented_filter,plot_line_chart,plot_produksi_stack_tahun
     )
 
 
@@ -38,8 +38,8 @@ ASSET_DIR = os.path.join(ROOT_DIR, "asset")
 LOGO_PEMDA = os.path.join(ASSET_DIR, "logo pemda.png")
 LOGO_DKP = os.path.join(ASSET_DIR, "DKP.png")
 BACKGROUND = os.path.join(ASSET_DIR, "background.jpg")
-DATA_PATH = os.path.join(ROOT_DIR, "output.csv")
-DATA_PATH_UPI = os.path.join(ROOT_DIR, "bedah upi.xlsx")
+DATA_PATH = os.path.join(ROOT_DIR, "data_upi_final_publish.xlsx")
+# DATA_PATH_UPI = os.path.join(ROOT_DIR, "data_upi_final_publish.xlsx")
 
 # ============================================================
 # PAGE CONFIG
@@ -77,65 +77,66 @@ def encode_image(path):
 # ============================================================
 # LOAD DATA
 # ============================================================
-df = pd.read_csv(DATA_PATH,sep=",", engine="python")
-df["PENERIMAAN BANTUAN"] = (
-    df["PENERIMAAN BANTUAN"]
-    .fillna("Belum")
-    .replace("", "Belum")
-)
+df = pd.read_excel(DATA_PATH)
+df['TANGGAL'] = pd.to_datetime(df['TANGGAL'])
+# df["PENERIMAAN BANTUAN"] = (
+#     df["PENERIMAAN BANTUAN"]
+#     .fillna("Belum")
+#     .replace("", "Belum")
+# )
 
-cols = ["jenis_ikan", "jenis_proses", "KECAMATAN", "DESA",'PENERIMAAN BANTUAN','NAMA UPI']
+# cols = ["jenis_ikan", "jenis_proses", "KECAMATAN", "DESA",'PENERIMAAN BANTUAN','NAMA UPI']
 
-# df[cols] = df[cols].apply(lambda x: x.str.lower())
-for col in cols:
-    df[col] = (
-        df[col]
-        .astype(str)
-        .str.strip()      # hapus spasi depan/belakang
-        .str.lower()      # semua jadi huruf kecil
-    )
+# # df[cols] = df[cols].apply(lambda x: x.str.lower())
+# for col in cols:
+#     df[col] = (
+#         df[col]
+#         .astype(str)
+#         .str.strip()      # hapus spasi depan/belakang
+#         .str.lower()      # semua jadi huruf kecil
+#     )
 
 
 
-df_clean = df.copy()
-df_clean = df_clean.drop(columns=['NO'])
-kolom_identitas = ['NAMA UPI', 'DESA', 'KECAMATAN', 'PENERIMAAN BANTUAN', 'JENIS KEGIATAN PENGOLAHAN','NO TELP ENKRIP', 'NAMA PEMILIK ENKRIP', 'clean', 'jenis_proses', 'jenis_ikan']
+# df_clean = df.copy()
+# df_clean = df_clean.drop(columns=['NO'])
+# kolom_identitas = ['NAMA UPI', 'DESA', 'KECAMATAN', 'PENERIMAAN BANTUAN', 'JENIS KEGIATAN PENGOLAHAN','NO TELP ENKRIP', 'NAMA PEMILIK ENKRIP', 'clean', 'jenis_proses', 'jenis_ikan']
 
-# 3. Lakukan Melt
-df_clean_melt = df_clean.melt(
-    id_vars=kolom_identitas, 
-    var_name='Tanggal', 
-    value_name='Jumlah Produksi'
-).copy()
-df_clean_melt['Tanggal'] = pd.to_datetime(df_clean_melt['Tanggal'], errors='coerce')
-df_clean_melt = df_clean_melt.set_index('Tanggal')
-df_clean_melt['Jumlah Produksi Final'] = (
-    df_clean_melt['Jumlah Produksi']
-    .apply(parse_produksi)
-    .interpolate(method='time')
-    .interpolate(method='linear')
-    .ffill()
-    .bfill()
-)
+# # 3. Lakukan Melt
+# df_clean_melt = df_clean.melt(
+#     id_vars=kolom_identitas, 
+#     var_name='Tanggal', 
+#     value_name='Jumlah Produksi'
+# ).copy()
+# df_clean_melt['Tanggal'] = pd.to_datetime(df_clean_melt['Tanggal'], errors='coerce')
+# df_clean_melt = df_clean_melt.set_index('Tanggal')
+# df_clean_melt['Jumlah Produksi Final'] = (
+#     df_clean_melt['Jumlah Produksi']
+#     .apply(parse_produksi)
+#     .interpolate(method='time')
+#     .interpolate(method='linear')
+#     .ffill()
+#     .bfill()
+# )
 
-# df_clean['Jumlah Produksi Final'] = add_random_noise(
-#     df_clean['Jumlah Produksi Final'],
-#     noise_level=0.08   # 8% variasi
+# # df_clean['Jumlah Produksi Final'] = add_random_noise(
+# #     df_clean['Jumlah Produksi Final'],
+# #     noise_level=0.08   # 8% variasi
+# # ).round(1)
+
+# df_clean_melt['Jumlah Produksi Final'] = add_dynamic_noise(
+#     df_clean_melt['Jumlah Produksi Final'],
+#     noise_level=0.18,
+#     wave_strength=0.07
 # ).round(1)
-
-df_clean_melt['Jumlah Produksi Final'] = add_dynamic_noise(
-    df_clean_melt['Jumlah Produksi Final'],
-    noise_level=0.18,
-    wave_strength=0.07
-).round(1)
-df_bedah_upi = pd.read_excel(DATA_PATH_UPI,sheet_name="bedah upi")
-df_bedah_upi['Nama Poklahsar'] = df_bedah_upi['Nama Poklahsar'].str.lower()
-df_bedah_upi = df_bedah_upi.merge(
-    df[['NAMA UPI', 'DESA', 'KECAMATAN']],
-    left_on='Nama Poklahsar',
-    right_on='NAMA UPI',
-    how='left'
-).drop(columns=['NAMA UPI'])
+# df_bedah_upi = pd.read_excel(DATA_PATH_UPI,sheet_name="bedah upi")
+# df_bedah_upi['Nama Poklahsar'] = df_bedah_upi['Nama Poklahsar'].str.lower()
+# df_bedah_upi = df_bedah_upi.merge(
+#     df[['NAMA UPI', 'DESA', 'KECAMATAN']],
+#     left_on='Nama Poklahsar',
+#     right_on='NAMA UPI',
+#     how='left'
+# ).drop(columns=['NAMA UPI'])
 # 		
 # df_bedah_upi = df_bedah_upi.dropna(subset=['DESA', 'KECAMATAN'])
 # df_bedah_upi = df_bedah_upi.drop_duplicates(
@@ -157,8 +158,8 @@ with tab1:
     # ============================================================
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric("Jumlah UPI", len(df))
-    col2.metric("Jenis Olahan", df["jenis_proses"].nunique())
+    col1.metric("Jumlah UPI", len(df['NAMA UPI'].unique()))
+    col2.metric("Jenis Olahan", df["JENIS KEGIATAN"].nunique())
     col3.metric("Kecamatan", df["KECAMATAN"].nunique())
     col4.metric("Desa", df["DESA"].nunique())
     st.divider()
@@ -175,7 +176,7 @@ with tab1:
     # =========================
     # JENIS PROSES
     # =========================
-        list_proses = sorted(df["jenis_proses"].dropna().unique())
+        list_proses = sorted(df["JENIS KEGIATAN"].dropna().unique())
         opsi_proses = ["Semua Jenis Proses"] + list_proses
         
         pilih_proses = st.multiselect(
@@ -194,12 +195,12 @@ with tab1:
             default_label="Semua Jenis Proses",
             full_list=list_proses
         )
-        df_clean_filtered = df_clean_melt[(df_clean_melt["jenis_proses"].isin(final_jenis_proses))].copy()
+        df_clean_filtered = df[(df["JENIS KEGIATAN"].isin(final_jenis_proses))].copy()
         # df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['jenis_proses'].isin(final_jenis_proses)]
     # =========================
     # JENIS IKAN
     # =========================
-        list_ikan = sorted(df["jenis_ikan"].dropna().unique())
+        list_ikan = sorted(df["JENIS IKAN"].dropna().unique())
         opsi_ikan = ["Semua Jenis Ikan"] + list_ikan
         
         pilih_ikan = st.sidebar.multiselect(
@@ -212,7 +213,7 @@ with tab1:
             default_label="Semua Jenis Ikan",
             full_list=list_ikan
         )
-        df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['jenis_ikan'].isin(final_jenis_ikan)]
+        df_clean_filtered = df_clean_filtered.loc[df_clean_filtered['JENIS IKAN'].isin(final_jenis_ikan)]
     # =========================
     # KECAMATAN
     # =========================
@@ -255,8 +256,8 @@ with tab1:
         options_kontak = ["Semuanya", "Memiliki Kontak", "Tidak Punya Kontak"]
 
         kontak_conditions= {
-            "Memiliki Kontak": df_clean_filtered["NO TELP ENKRIP"].notna(),
-            "Tidak Punya Kontak": df_clean_filtered["NO TELP ENKRIP"].isna()
+            "Memiliki Kontak": df_clean_filtered["NO TELP HASH"].notna(),
+            "Tidak Punya Kontak": df_clean_filtered["NO TELP HASH"].isna()
         }
         
         kontak_filter_option = handle_segmented_filter(label='Filter Kontak', options=options_kontak)
@@ -283,6 +284,9 @@ with tab1:
             map_condition=bantuan_conditions,
             selection=bantuan_filter_option
         )
+
+        df_clean_filtered_upi = df_clean_filtered.loc[df_clean_filtered['tahun bedah upi'].notna()].copy()
+        df_clean_filtered_poklahsar = df_clean_filtered.loc[df_clean_filtered['tahun bedah upi'].isna()].copy()
     # =========================
     # DKP IMAGE 
     # =========================
@@ -291,10 +295,10 @@ with tab1:
 
     with st.container():
         fig_lineplot = plot_tren_produksi_total(
-            df=df_clean_melt,
-            kolom_tanggal="index",
-            kolom_nilai="Jumlah Produksi Final",
-            judul="Tren Jumlah Produksi UPI",
+            df=df,
+            kolom_tanggal="TANGGAL",
+            kolom_nilai="PRODUKSI_BERSIH",
+            judul="Trend Jumlah Produksi POKLAHSAR",
             watermark_text="DATA DUMMY",
             # kolom_grup='KECAMATAN'
         )
@@ -305,14 +309,14 @@ with tab1:
         # ============================================================
         fig1 = plot_upi_per_kecamatan(df)
         # fig2 = plot_upi_per_olahan(df)
-        df_count_top_5_jenis_olahan = value_count_top5_with_others(df, group_col="jenis_proses", value_name="jumlah_upi")
+        df_count_top_5_jenis_olahan = value_count_top5_with_others(df, group_col="JENIS KEGIATAN", value_name="jumlah_upi")
         # df_count_top_5_jumlah_jenis_olahan_list = df_count_top_5_jenis_olahan["jumlah_upi"].tolist()
         # df_count_top_5_jenis_olahan_list = df_count_top_5_jenis_olahan["jenis_proses"].tolist()
         label_tampil_fig2 = [
             f"{jenis} = {jumlah}"
             for jumlah, jenis in zip(
                 df_count_top_5_jenis_olahan["jumlah_upi"].tolist(),
-                df_count_top_5_jenis_olahan["jenis_proses"].tolist()
+                df_count_top_5_jenis_olahan["JENIS KEGIATAN"].tolist()
             )
         ]
         
@@ -320,8 +324,8 @@ with tab1:
             df=df_count_top_5_jenis_olahan,
             # column_kategori="jenis_proses",
             column_value="jumlah_upi",
-            label_tampil=df_count_top_5_jenis_olahan["jenis_proses"].tolist(),
-            judul="Proporsi Jenis Proses UPI"
+            label_tampil=df_count_top_5_jenis_olahan["JENIS KEGIATAN"].tolist(),
+            judul="Proporsi Jenis Kegiatan POKLAHSAR"
         )
 
         
@@ -348,19 +352,19 @@ with tab1:
     #     (df["jenis_ikan"].isin(final_ikan))
     # ]
     # st.divider()
-    fig3 = plot_upi_jenis_proses_jenis_ikan_catplot(df_clean_filtered)
+    fig3 = plot_upi_jenis_proses_jenis_ikan_catplot(df_clean_filtered_poklahsar)
     # fig4 = plot_persentase_upi_memiliki_kontak(df_filtered_1)
     fig4 = donut_plot_binary(
-        df_clean_filtered,
-        kolom="NO TELP ENKRIP",
+        df_clean_filtered_poklahsar,
+        kolom="NO TELP HASH",
         # judul="",
         label_true="Memiliki Kontak",
         label_false="Tidak Memiliki Kontak",
-        judul="Persentase UPI yang Memiliki Kontak"
+        judul="Persentase Poklahsar yang Memiliki Kontak"
     )
 
     fig5 = donut_plot_kategori(
-        df_clean_filtered,
+        df_clean_filtered_poklahsar,
         "PENERIMAAN BANTUAN",
         kategori_urutan=["sudah", "belum"],
         label_tampil=["Sudah Menerima Bantuan", "Belum Menerima Bantuan"],
@@ -396,16 +400,16 @@ with tab1:
                 
             lineplot_filtered_hue_map = {
                 "Status Bantuan":'PENERIMAAN BANTUAN', 
-                "Jenis Olahan":'jenis_proses', 
-                "Jenis Ikan Yang Diolah":'jenis_ikan',
+                "Jenis Olahan":'JENIS KEGIATAN', 
+                "Jenis Ikan Yang Diolah":'JENIS IKAN',
                 'Tidak Ada':None,
                 'Kecamatan':'KECAMATAN',
                 'Desa':'DESA'
             }
             fig6 = plot_line_chart(
-                df_clean_filtered,
-                x_axis=df_clean_filtered.index,
-                y_axis='Jumlah Produksi Final',
+                df_clean_filtered_poklahsar,
+                x_axis='TANGGAL',
+                y_axis='PRODUKSI_BERSIH',
                 y_label='Jumlah Produksi',
                 kolom_grup=lineplot_filtered_hue_map.get(lineplot_filtered_hue),
                 judul='Trend Produksi Terfilter',
@@ -424,8 +428,76 @@ with tab1:
             # )
             
 with tab2:
-    st.dataframe(df_bedah_upi)
-    st.dataframe(df)
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("Jumlah UPI", len(df_clean_filtered_upi['NAMA UPI'].unique()))
+    col2.metric("Jenis Olahan", df_clean_filtered_upi["JENIS KEGIATAN"].nunique())
+    col3.metric("Kecamatan", df_clean_filtered_upi["KECAMATAN"].nunique())
+    col4.metric("Desa", df_clean_filtered_upi["DESA"].nunique())
+    st.divider()
+    stack_option = st.selectbox(
+        "Stack berdasarkan:",
+        [
+            "DESA",
+            "KECAMATAN",
+            "JENIS KEGIATAN",
+            "JENIS IKAN"
+        ]
+    )
+    col1,col2 = st.columns([1,1])
+    with col1:
+
+        fig_bedah_upi = plot_bedah_upi_stack(
+            df_clean_filtered_upi,
+            stack_option
+        )
+        st.plotly_chart(fig_bedah_upi, use_container_width=True)
+
+    with col2:
+        fig = plot_produksi_stack_tahun(
+            df_clean_filtered_upi,
+            stack_option
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+
+    lineplot_filtered_hue_upi = st.selectbox(
+        "Kelompokkan UPI Berdasarkan",
+        ("Status Bantuan", "Jenis Olahan", "Jenis Ikan Yang Diolah",'Kecamatan','Desa','Tidak Ada'),
+        placeholder="Pilih Metode"
+        # index=5
+    )
+
+    
+
+    # with col11:
+        
+    lineplot_filtered_hue_map_upi = {
+        "Status Bantuan":'PENERIMAAN BANTUAN', 
+        "Jenis Olahan":'JENIS KEGIATAN', 
+        "Jenis Ikan Yang Diolah":'JENIS IKAN',
+        'Tidak Ada':None,
+        'Kecamatan':'KECAMATAN',
+        'Desa':'DESA'
+    }
+
+    fig_lineplot_produksi_upi = plot_line_chart(
+        df_clean_filtered_upi,
+        x_axis='TANGGAL',
+        y_axis='PRODUKSI_BERSIH',
+        y_label='Jumlah Produksi',
+        kolom_grup=lineplot_filtered_hue_map_upi.get(lineplot_filtered_hue_upi),
+        judul='Trend Produksi Terfilter',
+        figsize=(10, 5),
+        tampil_legend=True,
+        watermark_text="Data Dummy",
+        # tampil_legend=True
+    )
+    st.plotly_chart(fig_lineplot_produksi_upi, use_container_width=True)
+
+    
+    # st.dataframe(df_clean_filtered_upi)
        
     
     

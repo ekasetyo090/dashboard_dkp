@@ -33,10 +33,10 @@ def plot_upi_per_kecamatan(df):
         df_kec,
         x="KECAMATAN",
         y="jumlah_upi",
-        title="Jumlah Unit Pengolahan Ikan (UPI) per Kecamatan",
+        title="Jumlah Kelompok Pengolah dan Pemasar (POKLAHSAR) per Kecamatan",
         labels={
             "KECAMATAN": "Kecamatan",
-            "jumlah_upi": "Jumlah UPI"
+            "jumlah_upi": "Jumlah POKLAHSAR"
         }
     )
 
@@ -178,23 +178,23 @@ def plot_upi_jenis_proses_jenis_ikan_catplot(df, figsize=(12, 8)):
     # Agregasi data
     df_grouped = (
         df
-        .groupby(["jenis_proses", "jenis_ikan"])
+        .groupby(["JENIS KEGIATAN", "JENIS IKAN"])
         .size()
         .reset_index(name="jumlah_upi")
     )
 
     fig = px.bar(
         df_grouped,
-        y="jenis_proses",          # <- pindah ke Y
+        y="JENIS KEGIATAN",          # <- pindah ke Y
         x="jumlah_upi",
-        color="jenis_ikan",
+        color="JENIS IKAN",
         barmode="stack",
         orientation="h",          # <- horizontal
-        title="Jumlah UPI Berdasarkan Jenis Proses dan Jenis Ikan",
+        title="Jumlah POKLAHSAR Berdasarkan Jenis Kegiatan dan Jenis Ikan",
         labels={
-            "jenis_proses": "Jenis Proses",
-            "jumlah_upi": "Jumlah UPI",
-            "jenis_ikan": "Jenis Ikan"
+            "JENIS KEGIATAN": "Jenis Kegiatan",
+            "jumlah_upi": "Jumlah POKLAHSAR",
+            "JENIS IKAN": "Jenis Ikan"
         }
     )
 
@@ -720,25 +720,209 @@ def plot_tren_produksi_total(
 
     return fig
 
+# def plot_line_chart(
+#     data,
+#     x_axis,
+#     y_axis,
+#     y_label:str=None,
+#     kolom_grup=None,
+#     judul:str=None,
+#     figsize=(10, 5),
+#     tampil_legend=False,
+#     watermark_text="Data Dummy"
+# ):
+#     # =========================
+#     # PARAMETER TRANSPARANSI AREA
+#     # =========================
+#     area_opacity = 0.25  # <-- Ubah di sini (0.1 - 0.5)
+
+#     # =========================
+#     # DATA KOSONG
+#     # =========================
+#     if data.empty:
+#         fig = go.Figure()
+#         fig.add_annotation(
+#             text="Tidak ada data",
+#             x=0.5, y=0.5,
+#             showarrow=False,
+#             font_size=16
+#         )
+#         fig.update_layout(title=judul)
+#         return fig
+
+#     df_plot = data.copy()
+
+#     # =========================
+#     # HANDLE X AXIS
+#     # =========================
+#     if isinstance(x_axis, (pd.Index, pd.Series)):
+#         df_plot["_x_axis"] = x_axis
+#     else:
+#         df_plot["_x_axis"] = x_axis
+
+#     x_col = "_x_axis"
+
+#     fig = go.Figure()
+
+#     colors = px.colors.qualitative.Plotly
+
+#     # =========================
+#     # TANPA GROUP
+#     # =========================
+#     if not kolom_grup:
+
+#         agg = (
+#             df_plot
+#             .groupby(x_col)[y_axis]
+#             .agg(["mean", "min", "max"])
+#             .reset_index()
+#             .sort_values(x_col)
+#         )
+
+#         x_vals = agg[x_col]
+#         y_min = agg["min"]
+#         y_max = agg["max"]
+#         y_mean = agg["mean"]
+
+#         color_line = colors[0]
+#         r, g, b = hex_to_rgb(color_line)
+#         color_fill = f"rgba({r},{g},{b},{area_opacity})"
+
+#         # AREA RANGE
+#         fig.add_trace(go.Scatter(
+#             x=list(x_vals) + list(x_vals[::-1]),
+#             y=list(y_max) + list(y_min[::-1]),
+#             fill="toself",
+#             fillcolor=color_fill,
+#             line=dict(color="rgba(255,255,255,0)"),
+#             hoverinfo="skip",
+#             showlegend=False
+#         ))
+
+#         # GARIS MEAN
+#         fig.add_trace(go.Scatter(
+#             x=x_vals,
+#             y=y_mean,
+#             mode="lines+markers",
+#             name="Rata-rata",
+#             line=dict(color=color_line, width=3),
+#             customdata=list(zip(y_min, y_max)),
+#             hovertemplate=
+#                 "<b>Tanggal:</b> %{x}<br>" +
+#                 "<b>Mean:</b> %{y}<br>" +
+#                 "<b>Min:</b> %{customdata[0]}<br>" +
+#                 "<b>Max:</b> %{customdata[1]}<extra></extra>"
+#         ))
+
+#     # =========================
+#     # DENGAN GROUP
+#     # =========================
+#     else:
+
+#         # Pastikan kategori dianggap string
+#         df_plot[kolom_grup] = df_plot[kolom_grup].astype(str)
+
+#         groups = df_plot[kolom_grup].dropna().unique()
+
+#         for i, g in enumerate(groups):
+
+#             df_g = df_plot[df_plot[kolom_grup] == g]
+
+#             agg = (
+#                 df_g
+#                 .groupby(x_col)[y_axis]
+#                 .agg(["mean", "min", "max"])
+#                 .reset_index()
+#                 .sort_values(x_col)
+#             )
+
+#             x_vals = agg[x_col]
+#             y_min = agg["min"]
+#             y_max = agg["max"]
+#             y_mean = agg["mean"]
+
+#             color_line = colors[i % len(colors)]
+#             r, g_color, b = hex_to_rgb(color_line)
+#             color_fill = f"rgba({r},{g_color},{b},{area_opacity})"
+
+#             # AREA
+#             fig.add_trace(go.Scatter(
+#                 x=list(x_vals) + list(x_vals[::-1]),
+#                 y=list(y_max) + list(y_min[::-1]),
+#                 fill="toself",
+#                 fillcolor=color_fill,
+#                 line=dict(color="rgba(255,255,255,0)"),
+#                 hoverinfo="skip",
+#                 showlegend=False
+#             ))
+
+#             # GARIS
+#             fig.add_trace(go.Scatter(
+#                 x=x_vals,
+#                 y=y_mean,
+#                 mode="lines+markers",
+#                 name=g,
+#                 line=dict(color=color_line, width=3),
+#                 customdata=list(zip(y_min, y_max)),
+#                 hovertemplate=
+#                     "<b>Group:</b> %{fullData.name}<br>" +
+#                     "<b>Tanggal:</b> %{x}<br>" +
+#                     "<b>Mean:</b> %{y}<br>" +
+#                     "<b>Min:</b> %{customdata[0]}<br>" +
+#                     "<b>Max:</b> %{customdata[1]}<extra></extra>"
+#             ))
+
+#     # =========================
+#     # LAYOUT
+#     # =========================
+#     fig.update_layout(
+#         title=judul,
+#         title_x=0.1,
+#         height=figsize[1] * 100,
+#         width=figsize[0] * 100,
+#         showlegend=tampil_legend,
+#         xaxis_title="Tanggal",
+#         yaxis_title=y_label if y_label else y_axis,
+#         template="plotly_white"
+#     )
+
+#     fig.update_xaxes(showgrid=True, gridcolor="rgba(0,0,0,0.1)")
+#     fig.update_yaxes(showgrid=True, gridcolor="rgba(0,0,0,0.1)")
+
+#     # WATERMARK
+#     fig.add_annotation(
+#         text=watermark_text,
+#         x=0.5,
+#         y=0.5,
+#         xref="paper",
+#         yref="paper",
+#         showarrow=False,
+#         font=dict(size=60, color="rgba(150,150,150,0.2)"),
+#         textangle=30
+#     )
+
+#     return fig
+
+
+def hex_to_rgb(hex_color):
+    """Convert hex color string to RGB tuple"""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+
 def plot_line_chart(
     data,
-    x_axis,
+    x_axis,            # string nama kolom, misal 'TANGGAL'
     y_axis,
-    y_label:str=None,
-    kolom_grup=None,
-    judul:str=None,
+    y_label: str = None,
+    kolom_grup=None,   # string nama kolom grup, optional
+    judul: str = None,
     figsize=(10, 5),
     tampil_legend=False,
     watermark_text="Data Dummy"
 ):
-    # =========================
-    # PARAMETER TRANSPARANSI AREA
-    # =========================
-    area_opacity = 0.25  # <-- Ubah di sini (0.1 - 0.5)
+    area_opacity = 0.25
 
-    # =========================
-    # DATA KOSONG
-    # =========================
     if data.empty:
         fig = go.Figure()
         fig.add_annotation(
@@ -752,34 +936,24 @@ def plot_line_chart(
 
     df_plot = data.copy()
 
-    # =========================
-    # HANDLE X AXIS
-    # =========================
-    if isinstance(x_axis, (pd.Index, pd.Series)):
-        df_plot["_x_axis"] = x_axis
-    else:
-        df_plot["_x_axis"] = x_axis
-
-    x_col = "_x_axis"
+    # pastikan kolom x_axis datetime jika datetime
+    if pd.api.types.is_datetime64_any_dtype(df_plot[x_axis]):
+        df_plot = df_plot.sort_values([kolom_grup, x_axis] if kolom_grup else [x_axis]).reset_index(drop=True)
 
     fig = go.Figure()
-
     colors = px.colors.qualitative.Plotly
 
-    # =========================
-    # TANPA GROUP
-    # =========================
+    # ===== TANPA GRUP =====
     if not kolom_grup:
-
         agg = (
             df_plot
-            .groupby(x_col)[y_axis]
+            .groupby(x_axis)[y_axis]
             .agg(["mean", "min", "max"])
             .reset_index()
-            .sort_values(x_col)
+            .sort_values(x_axis)
         )
 
-        x_vals = agg[x_col]
+        x_vals = agg[x_axis]
         y_min = agg["min"]
         y_max = agg["max"]
         y_mean = agg["mean"]
@@ -788,7 +962,7 @@ def plot_line_chart(
         r, g, b = hex_to_rgb(color_line)
         color_fill = f"rgba({r},{g},{b},{area_opacity})"
 
-        # AREA RANGE
+        # AREA
         fig.add_trace(go.Scatter(
             x=list(x_vals) + list(x_vals[::-1]),
             y=list(y_max) + list(y_min[::-1]),
@@ -814,29 +988,23 @@ def plot_line_chart(
                 "<b>Max:</b> %{customdata[1]}<extra></extra>"
         ))
 
-    # =========================
-    # DENGAN GROUP
-    # =========================
+    # ===== DENGAN GRUP =====
     else:
-
-        # Pastikan kategori dianggap string
         df_plot[kolom_grup] = df_plot[kolom_grup].astype(str)
-
         groups = df_plot[kolom_grup].dropna().unique()
 
         for i, g in enumerate(groups):
-
             df_g = df_plot[df_plot[kolom_grup] == g]
 
             agg = (
                 df_g
-                .groupby(x_col)[y_axis]
+                .groupby(x_axis)[y_axis]
                 .agg(["mean", "min", "max"])
                 .reset_index()
-                .sort_values(x_col)
+                .sort_values(x_axis)
             )
 
-            x_vals = agg[x_col]
+            x_vals = agg[x_axis]
             y_min = agg["min"]
             y_max = agg["max"]
             y_mean = agg["mean"]
@@ -872,16 +1040,14 @@ def plot_line_chart(
                     "<b>Max:</b> %{customdata[1]}<extra></extra>"
             ))
 
-    # =========================
-    # LAYOUT
-    # =========================
+    # ===== LAYOUT =====
     fig.update_layout(
         title=judul,
         title_x=0.1,
         height=figsize[1] * 100,
         width=figsize[0] * 100,
         showlegend=tampil_legend,
-        xaxis_title="Tanggal",
+        xaxis_title=x_axis,
         yaxis_title=y_label if y_label else y_axis,
         template="plotly_white"
     )
@@ -902,3 +1068,114 @@ def plot_line_chart(
     )
 
     return fig
+
+
+def plot_bedah_upi_stack(df, stack_col):
+
+    df_plot = df.copy()
+
+    # pastikan numeric
+    df_plot['tahun bedah upi'] = pd.to_numeric(df_plot['tahun bedah upi'], errors='coerce')
+
+    df_plot = df_plot.dropna(subset=['tahun bedah upi','NAMA UPI'])
+
+    # jumlah UPI unik per kategori
+    df_grouped = (
+        df_plot
+        .groupby(['tahun bedah upi', stack_col])['NAMA UPI']
+        .nunique()
+        .reset_index(name='jumlah_upi')
+    )
+
+    # total UPI unik per tahun
+    df_total = (
+        df_plot
+        .groupby('tahun bedah upi')['NAMA UPI']
+        .nunique()
+        .reset_index(name='total_upi')
+    )
+
+    fig = px.bar(
+        df_grouped,
+        x='tahun bedah upi',
+        y='jumlah_upi',
+        color=stack_col,
+        barmode='stack',
+        title=f'Distribusi Bedah UPI Unik per Tahun berdasarkan {stack_col}'
+    )
+
+    # label total di atas bar
+    fig.add_trace(
+        go.Scatter(
+            x=df_total['tahun bedah upi'],
+            y=df_total['total_upi'],
+            mode='text',
+            text=df_total['total_upi'],
+            textposition='top center',
+            showlegend=False,
+            textfont=dict(size=14, color='black')
+        )
+    )
+
+    fig.update_layout(
+        template='plotly_white',
+        xaxis=dict(dtick=1),
+        yaxis_title='Jumlah UPI Unik'
+    )
+
+    return fig
+
+
+def plot_produksi_stack_tahun(df, stack_col):
+
+    df_plot = df.copy()
+
+    # pastikan tanggal datetime
+    df_plot['TANGGAL'] = pd.to_datetime(df_plot['TANGGAL'], errors='coerce')
+
+    # ambil tahun
+    df_plot['TAHUN'] = df_plot['TANGGAL'].dt.year
+
+    # produksi numeric
+    df_plot['PRODUKSI_BERSIH'] = pd.to_numeric(df_plot['PRODUKSI_BERSIH'], errors='coerce')
+
+    df_plot = df_plot.dropna(subset=['TAHUN','PRODUKSI_BERSIH'])
+
+    # agregasi produksi
+    df_grouped = (
+        df_plot
+        .groupby(['TAHUN', stack_col])['PRODUKSI_BERSIH']
+        .sum()
+        .reset_index()
+        .sort_values('TAHUN')
+    )
+
+    fig = px.bar(
+        df_grouped,
+        x='TAHUN',
+        y='PRODUKSI_BERSIH',
+        color=stack_col,
+        barmode='stack',
+        title=f'Total Produksi per Tahun berdasarkan {stack_col}'
+    )
+
+    fig.update_layout(
+        template='plotly_white',
+        xaxis=dict(dtick=1),
+        yaxis_title='Total Produksi'
+    )
+
+    # WATERMARK DATA DUMMY
+    fig.add_annotation(
+        text="DATA DUMMY",
+        x=0.5,
+        y=0.5,
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+        font=dict(size=60, color="rgba(150,150,150,0.25)"),
+        textangle=-30
+    )
+
+    return fig
+
